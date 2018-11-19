@@ -4,6 +4,7 @@ OBJ_DIR=./.build
 SOURCES=parser.cpp
 SOURCES+=datatypes.cpp
 SOURCES+=algo.cpp
+SOURCES+=main.cpp
 CPPFLAGS+=-std=c++11 #-DBOOST_DISABLE_ASSERTS
 LDFLAGS=-lboost_system
 
