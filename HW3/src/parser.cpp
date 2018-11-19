@@ -164,37 +164,54 @@ int parser_t::do_block_file_parse(std::vector<module_t> &vec,  int *ptr_terminal
   return line_idx;
 }
 
-int main(int argc, char **argv){
-  boost::shared_ptr<parser_t> parser(new parser_t(argv[1]));
-  std::vector<module_t> module_array;
-  global_var_t *global_var = global_var_t::get_ref();
-  int terminal_count=0;
-  int lines=parser->do_block_file_parse(module_array, &terminal_count);
-  std::cout<<"lines="<<lines<<std::endl;
-  
+static int parse_line_for_terminal(std::string &line, terminal_t &obj){
+  const char *buf=line.c_str();
+  int len = line.length(); ///< there is no 0x0d/0x0a in line which retrieve by getline()
+  const int st_hdr=0;
+  const int st_xpos=1;
+  const int st_ypos=2;
+  int state=st_hdr;
+  int value;
 
-  shape_t die_shape = calc_for_die_shape(module_array, 0.1);
-  std::cout<<"die_shape="<<die_shape.w<<" x "<<die_shape.h<<std::endl;
-  global_var->set_die_shape(die_shape);
-  global_var->set_placement(PLACEMENT_HARD);
-
-
-  std::vector<tiny_module_t> sorted_array;
-  int rc = build_sorted_module_array(module_array, sorted_array);
-  //BOOST_FOREACH(auto e, sorted_array){
-  //  std::cout << e.toString() << std::endl;
-  //}
-  //std::cout<<"sorted_array.size()="<<sorted_array.size()<<std::endl;
-
-  boost::shared_ptr<b_node_t> root(new b_node_t(0));
-  build_b_tree(module_array, sorted_array, root);
-
-  int num_of_nodes=0;
-  b_node_t::dfs_visit(root, &num_of_nodes);
-  std::cout<<" num of nodes in b-tree: "<< num_of_nodes << std::endl;
-
-
+  if(len==0 || buf[0]!='p')
+    return -1;
+  int i=0;
+  while(i<len){
+    char ch = buf[i++];
+    switch(state){
+      case st_hdr:
+        if(ch=='p') { value=0; continue;}
+        else if(ch<='9' && ch>='0') { value *=10; value+=ch-'0'; continue;}
+        else if(ch==' '||ch=='\t'){obj.id=value; value=0;state=st_xpos; continue;}
+      break;
+      case st_xpos:
+        if(ch<='9' && ch>='0') { value *=10; value+=ch-'0'; continue;}
+        else if(ch==' '||ch=='\t'){obj.coord.x=value; value=0;state=st_ypos; continue;}
+      break;
+      case st_ypos:
+        if(ch<='9' && ch>='0') { value *=10; value+=ch-'0'; obj.coord.y=value; continue;}
+      break;  
+    }
+  }
   return 0;
 
 }
+int parser_t::do_pl_file_parse(std::vector<terminal_t> &vec){
+  std::string line;
+  int line_idx=0;
+  terminal_t obj;
+  
+  int terminal_count=0;
+  while(std::getline(*infile, line)){
+    line_idx++;
+    
+    int rc = parse_line_for_terminal(line, obj);
+    if(rc==0){
+      vec.push_back(obj);
+      terminal_count++;
+    }
+  }
+  return terminal_count;
+}
+
 
