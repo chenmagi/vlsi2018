@@ -60,6 +60,76 @@ static int parse_line_by_key(std::string &line, const char *key, int *ret_value)
   *ret_value = value;
   return 0;
 }
+static int parse_line_for_net(std::string &line, net_t &obj){
+  const char *buf=line.c_str();
+  int len = line.length(); ///< there is no 0x0d/0x0a in line which retrieve by getline()
+  if(len==0 || (buf[0]!='p' && buf[0]!='s'))
+    return -1;
+  int i=0;
+  if(buf[0]=='p' && len>=2){
+    int value=0;
+    for(i=1;i<len;++i){
+      value*=10; 
+      value+=buf[i]-'0';
+    }
+    obj.pin_count++;
+    obj.pin_id = value;
+    BOOST_ASSERT(obj.pin_count==1);
+    return 0;
+  }
+  else if(buf[0]=='s' && len>=3 && buf[1]=='b'){
+    int value=0;
+    for(i=2;i<len;++i){
+      value*=10; 
+      value+=buf[i]-'0';
+    }
+    obj.module_ids.push_back((unsigned int)value);
+    return 0;
+  }
+  return -1;
+
+}
+static int parse_line_for_terminal(std::string &line, terminal_t &obj){
+  const char *buf=line.c_str();
+  int len = line.length(); ///< there is no 0x0d/0x0a in line which retrieve by getline()
+  const int st_hdr=0;
+  const int st_xpos=1;
+  const int st_ypos=2;
+  int state=st_hdr;
+  int value;
+
+  if(len==0 || buf[0]!='p')
+    return -1;
+  int i=0;
+  while(i<len){
+    char ch = buf[i++];
+    switch(state){
+      case st_hdr:
+        if(ch=='p') { value=0; continue;}
+        else if(ch<='9' && ch>='0') { value *=10; value+=ch-'0'; continue;}
+        else if(ch==' '||ch=='\t'){obj.id=value; value=0;state=st_xpos; continue;}
+      break;
+      case st_xpos:
+        if(ch<='9' && ch>='0') { value *=10; value+=ch-'0'; continue;}
+        else if(ch==' '||ch=='\t'){obj.coord.x=value; value=0;state=st_ypos; continue;}
+      break;
+      case st_ypos:
+        if(ch<='9' && ch>='0') { value *=10; value+=ch-'0'; obj.coord.y=value; continue;}
+      break;  
+    }
+  }
+  return 0;
+
+}
+
+static bool find_duplicate_net(std::vector<net_t> &vec, net_t &obj){
+  BOOST_FOREACH(auto e, vec){
+    if(e.equal(obj)==true)
+      return true;
+  }
+  return false;
+}
+
 
 static int parse_line_for_block(std::string &line, module_t &module){
   const char *buf=line.c_str();
@@ -133,6 +203,10 @@ static int parse_line_for_block(std::string &line, module_t &module){
   }
   return 0;
 }
+/**
+ * parser routine for .hardblocks/.softblocks file
+ * @return number of lines proceeded
+ */
 int parser_t::do_block_file_parse(std::vector<module_t> &vec,  int *ptr_terminal_count){
   std::string line;
   int line_idx=0;
@@ -142,6 +216,7 @@ int parser_t::do_block_file_parse(std::vector<module_t> &vec,  int *ptr_terminal
   module_t obj;
   ///< parse header information first
   while(std::getline(*infile, line)){
+    ///< TODO refer to settings in global_var, and implement parser for .softblocks file
     if(line_idx==0){
       rc = parse_line_by_key(line,"NumHardRectilinearBlocks", &block_count);
       BOOST_ASSERT_MSG(rc==0, line.c_str());
@@ -164,38 +239,11 @@ int parser_t::do_block_file_parse(std::vector<module_t> &vec,  int *ptr_terminal
   return line_idx;
 }
 
-static int parse_line_for_terminal(std::string &line, terminal_t &obj){
-  const char *buf=line.c_str();
-  int len = line.length(); ///< there is no 0x0d/0x0a in line which retrieve by getline()
-  const int st_hdr=0;
-  const int st_xpos=1;
-  const int st_ypos=2;
-  int state=st_hdr;
-  int value;
 
-  if(len==0 || buf[0]!='p')
-    return -1;
-  int i=0;
-  while(i<len){
-    char ch = buf[i++];
-    switch(state){
-      case st_hdr:
-        if(ch=='p') { value=0; continue;}
-        else if(ch<='9' && ch>='0') { value *=10; value+=ch-'0'; continue;}
-        else if(ch==' '||ch=='\t'){obj.id=value; value=0;state=st_xpos; continue;}
-      break;
-      case st_xpos:
-        if(ch<='9' && ch>='0') { value *=10; value+=ch-'0'; continue;}
-        else if(ch==' '||ch=='\t'){obj.coord.x=value; value=0;state=st_ypos; continue;}
-      break;
-      case st_ypos:
-        if(ch<='9' && ch>='0') { value *=10; value+=ch-'0'; obj.coord.y=value; continue;}
-      break;  
-    }
-  }
-  return 0;
-
-}
+/**
+ * parser routine for .pl file
+ * @return number of lines proceeded
+ */
 int parser_t::do_pl_file_parse(std::vector<terminal_t> &vec){
   std::string line;
   int line_idx=0;
@@ -211,7 +259,78 @@ int parser_t::do_pl_file_parse(std::vector<terminal_t> &vec){
       terminal_count++;
     }
   }
-  return terminal_count;
+  /*< NOTE: terminal id starts from 1, 
+  insert extra terminal_t in front of vector to easy further access
+  */
+  if(terminal_count && vec[0].id==1){
+    obj.id = 0;
+    vec.insert(vec.begin(), obj);
+  }
+  return line_idx;
 }
 
+/**
+ * parser routine for .net file
+ * @return number of lines proceeded
+ */
+int parser_t::do_net_file_parse(std::vector<net_t> &vec){
+  std::string line;
+  int line_idx=0;
+  int net_count=0;
+  int pin_count=0;
+  int degree=0;
+  int remains=0;
+  int rc;
+  net_t obj;
+  ///< parse header information first
+  while(std::getline(*infile, line)){
+    if(line_idx==0){
+      rc = parse_line_by_key(line,"NumNets", &net_count);
+      BOOST_ASSERT_MSG(rc==0, line.c_str());
+    }
+    else if(line_idx==1){
+      rc = parse_line_by_key(line,"NumPins", &pin_count);
+      BOOST_ASSERT_MSG(rc==0, line.c_str());
+    }
+    else {
+      if(remains==0){
+        rc = parse_line_by_key(line, "NetDegree", &degree);
+        if(rc==0) {
+          obj.reset(); ///< start as new
+          remains=degree;
+          obj.degree = degree;
+        }
+        else obj.reset();
+      }
+      else if(remains >0){
+        rc = parse_line_for_net(line, obj);
+        if(rc==0) remains--;
+        if(remains==0){
+#ifdef REMOVE_DUP_NET
+          if(find_duplicate_net(vec, obj)==false)
+#endif
+            vec.push_back(obj);
+        }
 
+      }
+
+    }
+    line_idx++;
+    //std::cout<<"line #: "<<line_idx<<std::endl;
+  }
+#ifndef REMOVE_DUP_NET
+  BOOST_ASSERT(vec.size()==net_count);
+#endif
+
+  ///< assign id to net
+  for(int i=0;i<vec.size();++i){
+    vec[i].id=i;
+  }
+
+
+  //std::cout<<"NumHardRectilinearBlocks:"<<block_count<<std::endl;
+  //std::cout<<"NumTerminals:"<<terminal_count<<std::endl;
+  return line_idx;
+
+
+}

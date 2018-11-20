@@ -25,7 +25,58 @@ struct net_t {
     unsigned int id; ///< id of net
     std::vector<unsigned int> module_ids; ///< id list of connected modules
     int pin_id; ///< terminal id, -1 when net is not connected to any output pin
+    int pin_count;
     unsigned int degree; ///< number of connections
+    static const int INVALID_PIN=-1;
+
+    net_t(){
+        id = 0;
+        pin_id=INVALID_PIN;
+        pin_count=0;
+    }
+    inline net_t& operator=(const net_t& other){
+        id = other.id;
+        pin_id = other.pin_id;
+        pin_count= other.pin_count;
+        degree = other.degree;
+        module_ids = other.module_ids;
+        return *this;
+    }
+
+    bool equal(const net_t &other){
+        if(pin_id!=other.pin_id)
+            return false;
+        if(module_ids.size()!=other.module_ids.size())
+            return false;
+        for(int i=0;i<module_ids.size();++i){
+            if(module_ids[i]!=other.module_ids[i])
+                return false;
+        }    
+        return true;
+    }
+
+
+    void reset(void){
+        module_ids.clear();
+        pin_count=0;
+        pin_id=INVALID_PIN;
+        id=0;
+    }
+
+    std::string toString() const {
+        std::ostringstream stream;
+        stream<<"id: "<<id <<", modules(";
+        for(int i=0;i<module_ids.size();++i){
+            stream<<"sb"<<module_ids[i];
+            if(i!=module_ids.size()-1)
+                stream<<", ";
+            else stream<<"), ";
+        }
+        stream<<"pin: "<<pin_id ;
+        stream<<", degree: "<<degree;
+        return stream.str();
+
+    }
 };
 
 struct terminal_t {

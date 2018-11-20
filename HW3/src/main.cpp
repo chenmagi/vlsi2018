@@ -8,6 +8,20 @@
 namespace fs = boost::filesystem;
 int main(int argc, char **argv){
     boost::shared_ptr<parser_t> parser(new parser_t(argv[1]));
+    std::vector<net_t> array;
+    global_var_t *global_var = global_var_t::get_ref();
+    int net_count=0;
+    int count=parser->do_net_file_parse(array);
+    
+    BOOST_FOREACH(auto e, array){
+        std::cout <<e.toString()<< std::endl;
+    }
+    std::cout<<"net count: "<<array.size()<<std::endl;
+    return 0;
+}
+
+int main2(int argc, char **argv){
+    boost::shared_ptr<parser_t> parser(new parser_t(argv[1]));
     std::vector<terminal_t> array;
     global_var_t *global_var = global_var_t::get_ref();
     int terminal_count=0;
@@ -19,6 +33,7 @@ int main(int argc, char **argv){
     std::cout<<"terminal_array.size()="<<array.size()<<std::endl;
     return 0;
 }
+
 int main1(int argc, char **argv){
   boost::shared_ptr<parser_t> parser(new parser_t(argv[1]));
   std::vector<module_t> module_array;
