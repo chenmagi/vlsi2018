@@ -3,6 +3,7 @@
 #include <vector>
 #include <boost/smart_ptr.hpp>
 #include <sstream>
+#include <math.h>
 
 struct coordinate_t {
     unsigned int x;
@@ -17,6 +18,11 @@ struct coordinate_t {
     inline coordinate_t& operator=(const coordinate_t& other){
         x = other.x;
         y = other.y;
+        return *this;
+    }
+    inline coordinate_t& set(unsigned int _x, unsigned int _y){
+        x=_x;
+        y=_y;
         return *this;
     }
 };
@@ -42,7 +48,7 @@ struct net_t {
         module_ids = other.module_ids;
         return *this;
     }
-
+#if (0)
     bool equal(const net_t &other){
         if(pin_id!=other.pin_id)
             return false;
@@ -54,6 +60,7 @@ struct net_t {
         }    
         return true;
     }
+#endif    
 
 
     void reset(void){
@@ -128,7 +135,7 @@ struct shape_t {
     static shape_t build_from_string(const char *str);
 };
 
-
+struct module_t;
 struct b_node_t {
     boost::shared_ptr<b_node_t> lchild;
     boost::shared_ptr<b_node_t> rchild;
@@ -153,8 +160,10 @@ struct b_node_t {
     static void swap(b_node_t *a, b_node_t *b);
     static void move(b_node_t *a, b_node_t *dst_root);
     static void rotate(b_node_t *a);
+    static shape_t pack(boost::shared_ptr<b_node_t>root,std::vector<module_t> & module_array, std::vector<unsigned int> &horz_contour,std::vector<unsigned int>&vert_contour);
 
     static int dfs_visit(boost::shared_ptr<b_node_t> root, int *ret_count);
+    static bool verify(boost::shared_ptr<b_node_t>root,std::vector<module_t> & module_array);
 
 };
 
@@ -173,8 +182,9 @@ struct module_t {
     
     double aspect_lower; ///< reserved for soft module
     double aspect_upper; ///< reserved for soft module
+    std::vector<unsigned int> net_ids; ///< net id array
 
-    boost::shared_ptr<b_node_t> ptr_node;
+    boost::shared_ptr<b_node_t> ptr_node; ///< pointer to node in b*-tree
 
     module_t(){
         type = UNKNOWN_MODULE;
@@ -188,12 +198,41 @@ struct module_t {
         shape = other.shape;
         aspect_lower = other.aspect_lower;
         aspect_upper = other.aspect_upper;
+        net_ids = other.net_ids;
         return *this;
     }
 
-    inline module_t & roate(){
+    inline module_t & rotate(){
         shape.rotate();
         return *this;
+    }
+
+    inline bool is_rotated(){
+        return shape.rotated;
+    }
+    inline void get_rect(unsigned int rect[4][2]){
+        unsigned int x = origin.x;
+        unsigned int y = origin.y;
+        unsigned int w = shape.w;
+        unsigned int h = shape.h;
+        unsigned int tmp[4][2]={{x,y}, {x, y+h}, {x+w, y+h}, {x+w, y}};
+        memcpy(rect, tmp, sizeof(sizeof(unsigned int)*8));
+    }
+
+    ///< HPWL calculation for module-to-terminal and module-to-module
+    inline int wirelength_to(terminal_t &t){
+        int cx = origin.x + shape.w/2;
+        int cy = origin.y + shape.h/2;
+        return abs(cx-(int)t.coord.x)+abs(cy-(int)t.coord.y);
+    }
+
+    inline int wirelength_to(module_t &t){
+        int cx = origin.x + shape.w/2;
+        int cy = origin.y + shape.h/2;
+        
+        int t_cx = t.origin.x+t.shape.w/2;
+        int t_cy = t.origin.y+t.shape.h/2;
+        return abs(cx-t_cx)+abs(cy-t_cy);
     }
 
     std::string toString() const {

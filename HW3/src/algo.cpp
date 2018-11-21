@@ -30,7 +30,7 @@ int build_b_tree(std::vector<module_t> &vec, std::vector<tiny_module_t> &ordered
     int max_width = global_var->get_die_shape().w;
     int row_width = 0;
     boost::shared_ptr<b_node_t> ptr_current, row_root; 
-    std::cout<<"max width="<<max_width<<std::endl;
+    //std::cout<<"max width="<<max_width<<std::endl;
 
     ///< build index array, this will cut ordered-array into 4 parts
     for(int i=0;i<5;++i){
@@ -59,7 +59,7 @@ int build_b_tree(std::vector<module_t> &vec, std::vector<tiny_module_t> &ordered
                 boost::shared_ptr<b_node_t>child(new b_node_t(id));
                 vec[id].ptr_node = child;
                 if(row_width + vec[id].shape.w >max_width){
-                    std::cout<<"set new row when append b_node, width="<< row_width + vec[id].shape.w<<std::endl;
+                    //std::cout<<"set new row when append b_node, width="<< row_width + vec[id].shape.w<<std::endl;
                     child->parent = row_root;
                     row_root->rchild = child;
                     row_root = child;

@@ -121,15 +121,17 @@ static int parse_line_for_terminal(std::string &line, terminal_t &obj){
   return 0;
 
 }
-
+#if (0)
 static bool find_duplicate_net(std::vector<net_t> &vec, net_t &obj){
   BOOST_FOREACH(auto e, vec){
-    if(e.equal(obj)==true)
+    if(e.equal(obj)==true){
+      //std::cout<<"find duplicate "<<obj.toString()<<std::endl;
       return true;
+    }
   }
   return false;
 }
-
+#endif
 
 static int parse_line_for_block(std::string &line, module_t &module){
   const char *buf=line.c_str();
@@ -306,9 +308,6 @@ int parser_t::do_net_file_parse(std::vector<net_t> &vec){
         rc = parse_line_for_net(line, obj);
         if(rc==0) remains--;
         if(remains==0){
-#ifdef REMOVE_DUP_NET
-          if(find_duplicate_net(vec, obj)==false)
-#endif
             vec.push_back(obj);
         }
 
@@ -318,9 +317,7 @@ int parser_t::do_net_file_parse(std::vector<net_t> &vec){
     line_idx++;
     //std::cout<<"line #: "<<line_idx<<std::endl;
   }
-#ifndef REMOVE_DUP_NET
   BOOST_ASSERT(vec.size()==net_count);
-#endif
 
   ///< assign id to net
   for(int i=0;i<vec.size();++i){
@@ -334,3 +331,15 @@ int parser_t::do_net_file_parse(std::vector<net_t> &vec){
 
 
 }
+
+
+int parser_t::build_net_ids_to_module(std::vector<module_t> &module_array, std::vector<net_t> &net_array){
+  BOOST_FOREACH(auto e, net_array){
+    int i;
+    for(i=0;i<e.module_ids.size();++i){
+      module_array[e.module_ids[i]].net_ids.push_back(e.id);
+    }
+  }
+  return 0;
+
+}  

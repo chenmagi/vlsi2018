@@ -15,9 +15,10 @@ struct parser_t {
   ~parser_t();
   bool valid;
 
-  int do_net_file_parse(std::vector<net_t> &vce);
-  int do_pl_file_parse(std::vector<terminal_t> &vce);
+  int do_net_file_parse(std::vector<net_t> &vec);
+  int do_pl_file_parse(std::vector<terminal_t> &vec);
   int do_block_file_parse(std::vector<module_t> &vec, int *ptr_terminal_count);
+  int build_net_ids_to_module(std::vector<module_t> &module_array, std::vector<net_t> &net_array);  
 
 private:
   boost::shared_ptr<std::ifstream> infile;

@@ -6,7 +6,7 @@
 #include "globalvar.hpp"
 
 namespace fs = boost::filesystem;
-int main(int argc, char **argv){
+int main3(int argc, char **argv){
     boost::shared_ptr<parser_t> parser(new parser_t(argv[1]));
     std::vector<net_t> array;
     global_var_t *global_var = global_var_t::get_ref();
@@ -34,7 +34,7 @@ int main2(int argc, char **argv){
     return 0;
 }
 
-int main1(int argc, char **argv){
+int main(int argc, char **argv){
   boost::shared_ptr<parser_t> parser(new parser_t(argv[1]));
   std::vector<module_t> module_array;
   global_var_t *global_var = global_var_t::get_ref();
@@ -58,6 +58,21 @@ int main1(int argc, char **argv){
 
   boost::shared_ptr<b_node_t> root(new b_node_t(0));
   build_b_tree(module_array, sorted_array, root);
+
+  std::vector<unsigned int> h_contour, v_contour;
+  shape_t result=b_node_t::pack(root, module_array, h_contour, v_contour);
+
+
+  std::cout<<" first pack result: die shape="<<result.w<<" x "<<result.h<<std::endl;
+  bool is_overlap = b_node_t::verify(root, module_array);
+  std::cout<<"overlap check result="<<is_overlap<<std::endl;
+
+  std::cout<<"roate module id 0~29"<<std::endl;
+  for(int i=0;i<30;++i){
+    module_array[0+i].rotate();
+  }
+  result=b_node_t::pack(root, module_array, h_contour, v_contour);
+  std::cout<<" 2nd pack result: die shape="<<result.w<<" x "<<result.h<<std::endl;
 
   int num_of_nodes=0;
   b_node_t::dfs_visit(root, &num_of_nodes);
