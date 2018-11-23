@@ -62,7 +62,7 @@ int main1(int argc, char **argv){
   build_b_tree(module_array, sorted_array, root);
 
   std::vector<unsigned int> h_contour, v_contour;
-  shape_t result=b_node_t::pack(root, module_array, h_contour, v_contour);
+  shape_t result=b_node_t::pack2(root, module_array);
 
 
   std::cout<<" first pack result: die shape="<<result.w<<" x "<<result.h<<std::endl;
@@ -76,6 +76,10 @@ int main1(int argc, char **argv){
   
   std::cout<<" num of nodes in b-tree: "<< num_of_nodes << std::endl;
   std::cout << ostream.str() <<std::endl;
+  for(int i=0;i<module_array.size();++i){
+    std::cout<<"sb"<<module_array[i].id<<" = ("<<module_array[i].origin.x <<", "<<module_array[i].origin.y<<")"
+    <<std::endl;
+  }
 
   
   

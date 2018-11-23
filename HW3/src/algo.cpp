@@ -7,7 +7,7 @@
 
 
 static bool tiny_module_cmp(tiny_module_t a, tiny_module_t b){
-    return a.width > b.width;
+    return a.width < b.width;
 }
 int build_sorted_module_array(std::vector<module_t> & vec, std::vector<tiny_module_t> &ret_array){
     int i=0;
@@ -27,7 +27,7 @@ int build_b_tree(std::vector<module_t> &vec, std::vector<tiny_module_t> &ordered
     int len=ordered.size();
     int step=len/4;
     global_var_t *global_var = global_var_t::get_ref();
-    int max_width = global_var->get_die_shape().w;
+    int max_width = global_var->get_die_shape().w * 0.9;
     int row_width = 0;
     boost::shared_ptr<b_node_t> ptr_current, row_root; 
     //std::cout<<"max width="<<max_width<<std::endl;

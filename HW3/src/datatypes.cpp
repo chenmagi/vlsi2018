@@ -105,11 +105,17 @@ module_t & parent, module_t &rchild){
     update_horz_contour(horz_contour, rchild.origin, rchild.shape);
     update_vert_contour(vert_contour, rchild.origin, rchild.shape);
 }
-
+static int max_contour(std::vector<unsigned int> &contour, int start, int end){
+    int max=contour[start];
+    for(int i=start+1;i<end;++i){
+        if(max<contour[i]) max=contour[i];
+    }
+    return max;
+}
 static void place_left_child2(std::vector<unsigned int> &horz_contour,std::vector<unsigned int> &vert_contour,
 module_t & parent,bool parent_rotated, module_t &lchild, bool child_rotated){
     int x = parent.origin.x + (parent_rotated?parent.shape.h:parent.shape.w);
-    int y = horz_contour[x];
+    int y = max_contour(horz_contour, x, x+(child_rotated?lchild.shape.h:lchild.shape.w));
     lchild.origin.set(x,y);
     shape_t rotated_shape(lchild.shape.h, lchild.shape.w);
     if(child_rotated){
@@ -125,7 +131,7 @@ module_t & parent,bool parent_rotated, module_t &lchild, bool child_rotated){
 static void place_right_child2(std::vector<unsigned int> &horz_contour,std::vector<unsigned int> &vert_contour,
 module_t & parent,bool parent_rotated, module_t &rchild, bool child_rotated){
     int x = parent.origin.x;
-    int y = horz_contour[x];
+    int y = max_contour(horz_contour, x, x+(child_rotated?rchild.shape.h:rchild.shape.w));
     rchild.origin.set(x,y);
     shape_t rotated_shape(rchild.shape.h, rchild.shape.w);
     if(child_rotated){

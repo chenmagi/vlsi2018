@@ -81,9 +81,8 @@ void simulated_annealing_t::run(std::vector<module_t> & module_array, std::vecto
 
     global_var_t *global_var = global_var_t::get_ref();
     shape_t target_die_shape = global_var->get_die_shape();
-    
-    
     int iteration=0;
+    int tune=0;
     while(tc_current > this->tc_end && timer_t::get_ref().elapsed() < timeout){
         double old_cost = cur_sol.cost;
         solution_t new_solution = get_next_solution(module_array, cur_sol);
@@ -99,9 +98,14 @@ void simulated_annealing_t::run(std::vector<module_t> & module_array, std::vecto
             cur_sol = new_solution;
             if(new_solution.cost < best_sol.cost)
                 best_sol = new_solution;
+            tune=0;    
+        }
+        else {
+            tune++;
         }
         tc_current *= this->cooling_factor;
-        std::cout<<"["<<iteration++<<"]"<<best_sol.toString() << std::endl;
+        if(tune>=10000) cur_sol = best_sol;
+        std::cout<<"["<<iteration++<<"]"<<cur_sol.toString() << std::endl;
     }
     if(timer_t::get_ref().elapsed() > timeout){
         std::cout<<"time out"<<std::endl;

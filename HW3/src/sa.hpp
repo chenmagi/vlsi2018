@@ -58,7 +58,7 @@ struct solution_t {
     std::vector<boost::shared_ptr<b_node_t> > lookup_tbl;
     double cost;
     shape_t die_shape;
-    static constexpr double alpha = 0.002;
+    static constexpr double alpha = 0.02;
     solution_t(){
         tree_root = 0;
         cost = std::numeric_limits<unsigned long int>::max();
@@ -89,7 +89,7 @@ struct solution_t {
 struct simulated_annealing_t {
     static constexpr double tc_start = 100000.0;
     static constexpr double tc_end = 0.00025;
-    static constexpr double cooling_factor = 0.99995;
+    static constexpr double cooling_factor = 0.999995;
     solution_t best_sol;
     solution_t cur_sol;
     
