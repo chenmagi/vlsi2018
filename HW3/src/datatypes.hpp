@@ -104,23 +104,24 @@ struct shape_t {
     unsigned int w;
     unsigned int h;
     double ratio; ///< height devide by width
-    bool rotated;
+    //bool rotated;
     shape_t(){
         w=h=0;
         ratio=0.1;
-        rotated=false;
+        //rotated=false;
     }
     shape_t(unsigned int _w, unsigned int _h){
         w=_w;
         h=_h;
-        rotated=false;
+        //rotated=false;
     }
     inline shape_t & operator=(const shape_t& other){
         w = other.w;
         h = other.h;
-        rotated = other.rotated;
+        //rotated = other.rotated;
         return *this;
     }
+    #if (0)
     inline shape_t& rotate(){
         unsigned int tmp;
         tmp = w;
@@ -129,6 +130,7 @@ struct shape_t {
         rotated=rotated==true?false:true; 
         return *this;
     }
+    #endif
     inline unsigned int area(){
         return w*h;
     }
@@ -170,7 +172,7 @@ struct b_node_t {
         return num;
     }
     inline void rotate(void){
-        rotated = rotated==true?false:true;
+        rotated = (rotated==true)?false:true;
     }
 
     inline b_node_t& operator=(const b_node_t& other){
@@ -182,11 +184,12 @@ struct b_node_t {
         return *this;
     }
 
+    static boost::shared_ptr<b_node_t> tree_copy(boost::shared_ptr<b_node_t> src_root);
     static void swap(boost::shared_ptr<b_node_t> a, boost::shared_ptr<b_node_t> b);
     static void move(boost::shared_ptr<b_node_t> a, boost::shared_ptr<b_node_t> dst_root);
-    static void rotate(std::vector<module_t> &module_array,boost::shared_ptr<b_node_t> a);
+    
     static shape_t pack(boost::shared_ptr<b_node_t>root,std::vector<module_t> & module_array, std::vector<unsigned int> &horz_contour,std::vector<unsigned int>&vert_contour);
-
+    static shape_t pack2(boost::shared_ptr<b_node_t>root,std::vector<module_t> & module_array);
     static int dfs_visit(boost::shared_ptr<b_node_t> root, int *ret_count);
     static bool verify(boost::shared_ptr<b_node_t>root,std::vector<module_t> & module_array);
 
@@ -209,7 +212,7 @@ struct module_t {
     double aspect_upper; ///< reserved for soft module
     std::vector<unsigned int> net_ids; ///< net id array
 
-    boost::shared_ptr<b_node_t> ptr_node; ///< pointer to node in b*-tree
+    //boost::shared_ptr<b_node_t> ptr_node; ///< pointer to node in b*-tree
 
     module_t(){
         type = UNKNOWN_MODULE;
@@ -226,7 +229,7 @@ struct module_t {
         net_ids = other.net_ids;
         return *this;
     }
-
+#if (0)
     inline module_t & rotate(){
         shape.rotate();
         return *this;
@@ -235,6 +238,7 @@ struct module_t {
     inline bool is_rotated(){
         return shape.rotated;
     }
+#endif    
     inline void get_rect(unsigned int rect[4][2]){
         unsigned int x = origin.x;
         unsigned int y = origin.y;
@@ -260,13 +264,22 @@ struct module_t {
         return abs(cx-t_cx)+abs(cy-t_cy);
     }
 
+    void get_centric(unsigned int *cx, unsigned int *cy){
+        *cx = origin.x + shape.w/2;
+        *cy = origin.y + shape.h/2;
+    }
+    void get_rotated_centric(unsigned int *cx, unsigned int *cy){
+        *cx = origin.x + shape.h/2;
+        *cy = origin.y + shape.w/2;
+    }
+
     std::string toString() const {
         std::ostringstream stream;
         stream<<"id: "<<id <<", ";
         stream<<"type: "<<type <<", ";
         stream<<"origin: "<<"("<<origin.x<<", "<<origin.y<<"), ";
         stream<<"shape: "<<"("<<shape.w<<", "<<shape.h<<"), " ;
-        stream<<"rotate: "<<shape.rotated;
+        //stream<<"rotate: "<<shape.rotated;
         return stream.str();
     }
 

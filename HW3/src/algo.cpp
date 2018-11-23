@@ -44,7 +44,7 @@ int build_b_tree(std::vector<module_t> &vec, std::vector<tiny_module_t> &ordered
     pop_idx[0]=1;
     root->module_id = ordered[0].id;
     root->parent = NULL;
-    vec[root->module_id].ptr_node = root;
+    //vec[root->module_id].ptr_node = root;
     ptr_current = row_root = root;
     row_width += vec[root->module_id].shape.w;
     len -=1;
@@ -57,7 +57,7 @@ int build_b_tree(std::vector<module_t> &vec, std::vector<tiny_module_t> &ordered
                 unsigned int id = ordered[idx].id;
                 
                 boost::shared_ptr<b_node_t>child(new b_node_t(id));
-                vec[id].ptr_node = child;
+                //vec[id].ptr_node = child;
                 if(row_width + vec[id].shape.w >max_width){
                     //std::cout<<"set new row when append b_node, width="<< row_width + vec[id].shape.w<<std::endl;
                     child->parent = row_root;
