@@ -4,6 +4,8 @@
 #include <queue>
 #include "globalvar.hpp"
 #include <algorithm>
+#include <vector>
+
 shape_t shape_t::build_from_string(const char *str){
     int i=0;
     int len = str!=NULL?strlen(str):0;
@@ -190,5 +192,49 @@ bool b_node_t::verify(boost::shared_ptr<b_node_t>root,std::vector<module_t> & mo
     }    
     return overlap_count==0?false:true;
 
+}
+
+void b_node_t::swap(boost::shared_ptr<b_node_t> a, boost::shared_ptr<b_node_t> b){
+    boost::shared_ptr<b_node_t> parent_of_a = a->parent;
+    boost::shared_ptr<b_node_t> parent_of_b = b->parent;
+    boost::shared_ptr<b_node_t> lchild_of_a = a->lchild;
+    boost::shared_ptr<b_node_t> rchild_of_a = a->rchild;
+    boost::shared_ptr<b_node_t> lchild_of_b = b->lchild;
+    boost::shared_ptr<b_node_t> rchild_of_b = b->rchild;
+
+    a->parent = parent_of_b;
+    b->parent = parent_of_a;
+    a->lchild = lchild_of_b;
+    a->rchild = rchild_of_b;
+    b->lchild = lchild_of_a;
+    b->rchild = rchild_of_a;
+}
+void b_node_t::move(boost::shared_ptr<b_node_t>  a, boost::shared_ptr<b_node_t> dst_root){
+    int value = a->num_of_children();
+    BOOST_ASSERT_MSG(a->is_as_root()==false, "illegal instruction");
+    if(value<=1){
+        boost::shared_ptr<b_node_t> child;
+        if(a->lchild != NULL) child=a->lchild;
+        else child = a->rchild;
+        if(a->is_as_lchild()){
+            a->parent->lchild=child;
+        }
+        else if(a->is_as_rchild()){
+            a->parent->rchild=child;
+        }
+    }
+    else if(value==2){
+        ///< TODO to implement this
+    }
+
+}
+void b_node_t::rotate(std::vector<module_t> &module_array,boost::shared_ptr<b_node_t> a){
+    unsigned int id = 0;
+    BOOST_ASSERT_MSG(a!=NULL, "access invalid b_node_t");
+    ///< NOTE!! we should make sure the rotation infomation is the same between node and mdoule
+    a->rotate();
+    id = a->module_id;
+    module_array[id].rotate();
+    return;
 }
 

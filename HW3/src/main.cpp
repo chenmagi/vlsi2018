@@ -69,14 +69,17 @@ int main(int argc, char **argv){
 
   std::cout<<"roate module id 0~29"<<std::endl;
   for(int i=0;i<30;++i){
-    module_array[0+i].rotate();
+    if(i%4) continue;
+    module_array[20+i].rotate();
   }
   result=b_node_t::pack(root, module_array, h_contour, v_contour);
   std::cout<<" 2nd pack result: die shape="<<result.w<<" x "<<result.h<<std::endl;
 
   int num_of_nodes=0;
-  b_node_t::dfs_visit(root, &num_of_nodes);
+  std::ostringstream ostream;
+  build_graphviz(root, ostream, &num_of_nodes);
   std::cout<<" num of nodes in b-tree: "<< num_of_nodes << std::endl;
+  std::cout << ostream.str();
 
 
   return 0;

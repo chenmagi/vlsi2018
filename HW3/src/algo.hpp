@@ -22,6 +22,7 @@ int build_sorted_module_array(std::vector<module_t> & vec, std::vector<tiny_modu
 int build_b_tree(std::vector<module_t> &vec, std::vector<tiny_module_t> &ordered, 
 boost::shared_ptr<b_node_t> root);
 
+int build_graphviz(boost::shared_ptr<b_node_t> root, std::ostringstream &ostream, int *node_count);
 
 shape_t calc_for_die_shape(std::vector<module_t> &vec, double ratio);
 

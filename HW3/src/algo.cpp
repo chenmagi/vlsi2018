@@ -91,3 +91,31 @@ shape_t calc_for_die_shape(std::vector<module_t> &vec, double ratio){
     ret.w = ret.h = sqrt(total_area);
     return ret;
 }
+
+
+int build_graphviz(boost::shared_ptr<b_node_t> root, std::ostringstream &ostream, int *node_count){
+    if(root==NULL)
+        return -1;
+    *node_count+=1;    
+    if(root->parent==NULL){
+        ostream << "digraph G{" <<std::endl;
+    }
+    if(root->num_of_children()==0){
+        ostream<<"sb"<<root->module_id << std::endl;
+    }
+
+    if(root->lchild){
+        ostream<<"sb"<<root->module_id << " -> ";
+        build_graphviz(root->lchild, ostream, node_count);
+    } 
+    
+    if(root->rchild){
+        ostream<<"sb"<<root->module_id << " -> ";
+        build_graphviz(root->rchild, ostream, node_count);
+    }
+    
+    if(root->parent==NULL){
+        ostream << "}" <<std::endl;
+    }
+    return 0;
+}

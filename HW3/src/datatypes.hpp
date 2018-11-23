@@ -141,25 +141,50 @@ struct b_node_t {
     boost::shared_ptr<b_node_t> rchild;
     boost::shared_ptr<b_node_t> parent;
     unsigned int module_id;
+    bool rotated;
 
     b_node_t(unsigned int v){
         lchild=rchild=parent=NULL;
         module_id=v;
+        rotated=false;
     }
-    inline bool is_root(void){
+    
+    inline bool is_as_root(void){
         return parent==NULL?true:false;
     }
-    inline bool is_lchild(void){
-        return lchild!=NULL?true:false;
+    inline bool is_as_lchild(void){
+        if((parent->lchild!=NULL) && parent->lchild->module_id==module_id)
+            return true;
+        else return false;
     }
 
-    inline bool is_rchild(void){
-        return rchild!=NULL?true:false;
+    inline bool is_as_rchild(void){
+        if((parent->rchild!=NULL) && parent->rchild->module_id==module_id)
+            return true;
+        else return false;
+    }
+    inline int num_of_children(void){
+        int num=0;
+        if(rchild!=NULL) num++;
+        if(lchild!=NULL) num++;
+        return num;
+    }
+    inline void rotate(void){
+        rotated = rotated==true?false:true;
     }
 
-    static void swap(b_node_t *a, b_node_t *b);
-    static void move(b_node_t *a, b_node_t *dst_root);
-    static void rotate(b_node_t *a);
+    inline b_node_t& operator=(const b_node_t& other){
+        lchild = other.lchild;
+        rchild = other.rchild;
+        parent = other.parent;
+        module_id = other.module_id;
+        rotated = other.rotated;
+        return *this;
+    }
+
+    static void swap(boost::shared_ptr<b_node_t> a, boost::shared_ptr<b_node_t> b);
+    static void move(boost::shared_ptr<b_node_t> a, boost::shared_ptr<b_node_t> dst_root);
+    static void rotate(std::vector<module_t> &module_array,boost::shared_ptr<b_node_t> a);
     static shape_t pack(boost::shared_ptr<b_node_t>root,std::vector<module_t> & module_array, std::vector<unsigned int> &horz_contour,std::vector<unsigned int>&vert_contour);
 
     static int dfs_visit(boost::shared_ptr<b_node_t> root, int *ret_count);
