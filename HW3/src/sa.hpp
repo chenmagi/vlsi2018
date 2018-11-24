@@ -69,22 +69,25 @@ struct solution_t {
     std::vector<boost::shared_ptr<b_node_t> > lookup_tbl;
     double cost;
     shape_t die_shape;
-    static  double alpha;
+    static  double alpha[2];
+    unsigned int wirelength;
     solution_t(){
         tree_root.reset();
         cost = std::numeric_limits<unsigned long int>::max();
+	wirelength = std::numeric_limits<unsigned int>::max();
     }
 
     void build_from_b_tree(boost::shared_ptr<b_node_t> src_root, int num_of_nodes);
 
     void update_cost(std::vector<module_t> &module_array, std::vector<net_t> &net_array, 
-    std::vector<terminal_t> &pin_array);    
+    std::vector<terminal_t> &pin_array, int mode);    
 
 
     inline solution_t & operator=(const solution_t &other){
         build_from_b_tree(other.tree_root, other.lookup_tbl.size());
         cost = other.cost;
         die_shape = other.die_shape;
+	wirelength = other.wirelength;
         return *this;
     }
 
@@ -93,6 +96,7 @@ struct solution_t {
         std::ostringstream stream;
         stream<<"cost="<<cost<<", ";
         stream<<"die_shape="<<die_shape.w <<" x " << die_shape.h ;
+        stream<<", wirelength="<<wirelength;
         return stream.str();
     }
 };
@@ -103,6 +107,7 @@ struct simulated_annealing_t {
     static  double cooling_factor ;
     solution_t best_sol;
     solution_t cur_sol;
+    solution_t fit_sol;
     
     
     void run(std::vector<module_t> & module_array, std::vector<net_t> &net_array, std::vector<terminal_t> &pin_array,int timeout);

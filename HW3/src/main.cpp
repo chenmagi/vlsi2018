@@ -6,8 +6,10 @@
 #include "globalvar.hpp"
 #include "sa.hpp"
 #include "clock.hpp"
+#include <fstream>
 
 namespace fs = boost::filesystem;
+#if (0)
 int main3(int argc, char **argv){
     boost::shared_ptr<parser_t> parser(new parser_t(argv[1]));
     std::vector<net_t> array;
@@ -108,10 +110,36 @@ int main1(int argc, char **argv){
   return 0;
 
 }
+#endif
+
+void usage(const char *exec_name){
+  std::cout<<"Usage: "<<exec_name<<" .hardblocks .nets .pl .floorplan" <<std::endl;
+}
+#if (1)
+void do_seed_init(const char *dataset){
+  boost::filesystem::path p(dataset);
+  if(strcmp(p.filename().c_str(), "n100.hardblocks")==0){
+    random_t::init(15753);
+  }
+  else if(strcmp(p.filename().c_str(), "n200.hardblocks")==0)
+    random_t::init(26362);
+  else if(strcmp(p.filename().c_str(), "n300.hardblocks")==0)
+    random_t::init(27991);
+  else random_t::init(791233);  
+}
+#else 
+void do_seed_init(const char *value){
+  random_t::init(atoi(value));
+}
+#endif
 
 int main(int argc, char **argv){
   simple_timer_t::get_ref().reset();
-  random_t::init(atoi(argv[4]));
+  if(argc!=5){
+    usage(argv[0]);
+    return 0;
+  }
+  do_seed_init(argv[1]);
   boost::shared_ptr<parser_t> block_parser(new parser_t(argv[1]));
   std::vector<module_t> module_array;
   
@@ -135,10 +163,24 @@ int main(int argc, char **argv){
   global_var->set_placement(PLACEMENT_HARD);
 
   simulated_annealing_t sa;
-  sa.run(module_array, net_array, pin_array, 60*5);
-  solution_t best_sol = sa.best_sol;
+  sa.run(module_array, net_array, pin_array, 60*19);
 
-  std::cout<<"final result="<<best_sol.toString()<<std::endl;
+  std::cout<<"elapsed="<<simple_timer_t::get_ref().elapsed()<<std::endl;
+  std::cout<<"final result[0]="<<sa.fit_sol.toString()<<std::endl;
+  std::cout<<"final result[1]="<<sa.best_sol.toString()<<std::endl;
+  std::cout<<"final result[2]="<<sa.cur_sol.toString()<<std::endl;
+  
+  std::ofstream file;
+  file.open (argv[4]);
+  file << "Wirelength " << sa.fit_sol.wirelength <<"\n";
+  file << "Blocks\n";
+  for(int k=0;k<module_array.size();++k){
+    file <<"sb"<<k<<" "<<module_array[k].origin.x <<" "<<module_array[k].origin.y;
+    file <<" "<<module_array[k].shape.w <<" "<<module_array[k].shape.h;
+    file <<" "<<sa.fit_sol.lookup_tbl[k]->rotated<<"\n";
+  }
+  file.close();
+
 
   return 0;
 

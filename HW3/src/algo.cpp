@@ -7,7 +7,7 @@
 
 
 static bool tiny_module_cmp(tiny_module_t a, tiny_module_t b){
-    return a.width < b.width;
+    return a.width > b.width;
 }
 int build_sorted_module_array(std::vector<module_t> & vec, std::vector<tiny_module_t> &ret_array){
     int i=0;

@@ -9,8 +9,10 @@ double random_t::deviation = 4.0;
 double random_t::mean = 1.0;
 double simulated_annealing_t::tc_start = 10000.0;
 double simulated_annealing_t::tc_end = 0.00025;
+//double simulated_annealing_t::cooling_factor = 0.99995;
 double simulated_annealing_t::cooling_factor = 0.99995;
-double solution_t::alpha = 0.379;
+//double solution_t::alpha = 0.379;
+double solution_t::alpha[] = {0.379, 0.379};
 unsigned random_t::seed=1;
 
 
@@ -85,8 +87,9 @@ void simulated_annealing_t::run(std::vector<module_t> & module_array, std::vecto
 #endif    
     
     cur_sol.build_from_b_tree(init_tree, module_array.size());
-    cur_sol.update_cost(module_array,net_array, pin_array);
+    cur_sol.update_cost(module_array,net_array, pin_array, 0);
     best_sol = cur_sol;
+    fit_sol = cur_sol;
 #if defined(MYDEBUG)    
     std::cout << "initial solution: "<<cur_sol.toString()<<std::endl;
 #endif
@@ -99,42 +102,51 @@ void simulated_annealing_t::run(std::vector<module_t> & module_array, std::vecto
     while(tc_current > this->tc_end && simple_timer_t::get_ref().elapsed() < timeout){
         double old_cost = cur_sol.cost;
         solution_t new_solution = get_next_solution(module_array, cur_sol);
-        new_solution.update_cost(module_array, net_array, pin_array);
+        new_solution.update_cost(module_array, net_array, pin_array, iteration<40000?0:1);
         if(new_solution.die_shape.w <= target_die_shape.w && new_solution.die_shape.h <= target_die_shape.h){
-            best_sol = new_solution;
-            std::cout<<"find fit solution = "<<new_solution.die_shape.w <<" x " <<new_solution.die_shape.w<<std::endl;
+            fit_sol = new_solution;
+#if defined(MYDEBUG)
+            std::cout<<"find fit solution = "<<fit_sol.toString()<<std::endl;
+#endif
             break;
         }
 
         double prob = acceptance(new_solution.cost, old_cost, tc_current);
+        tc_current *= this->cooling_factor;
         if(prob>=level){
             cur_sol = new_solution;
             if(new_solution.cost < best_sol.cost)
                 best_sol = new_solution;
             tune=0;    
             fine_tune++;
+	    continue;
         }
         else {
             tune++;
             fine_tune=0;
         }
-        tc_current *= this->cooling_factor;
         if(tune>=2000){
             cur_sol = best_sol;
+#if defined(MYDEBUG)
             std::cout<<"-------------------------------"<<std::endl;
             std::cout<<"-------------------------------"<<std::endl;
+#endif
             random_t::get_ref().reseed(random_t::get_ref().seed *4/3);
             tune=0;
             level -= 0.005;
         }     
         else if(fine_tune>=1000) level+=0.005;
+        /*
         std::cout<<"["<<iteration++<<"]"<<cur_sol.toString() <<", eslaped="<<
            simple_timer_t::get_ref().elapsed()<<", best=" << best_sol.die_shape.w<<" x " <<
            best_sol.die_shape.h << std::endl;
+        */
     }
+#if defined(MYDEBUG)
     if(simple_timer_t::get_ref().elapsed() > timeout){
         std::cout<<"time out"<<std::endl;
     }
+#endif
     return;
 
 
@@ -149,7 +161,8 @@ void solution_t::build_from_b_tree(boost::shared_ptr<b_node_t> src_root, int num
 
     lookup_tbl.clear();
     for(int i=0;i<num_of_nodes;++i){
-        lookup_tbl.push_back(0);
+        boost::shared_ptr<b_node_t> ptr;
+        lookup_tbl.push_back(ptr);
     }
     
     bfs_queue.push(*src_root);    
@@ -190,11 +203,13 @@ static bool integer_cmp( int a,  int b){
     return a < b;
 }
 
-void solution_t::update_cost(std::vector<module_t> &module_array, std::vector<net_t> &net_array, std::vector<terminal_t> &pin_array){
+void solution_t::update_cost(std::vector<module_t> &module_array, std::vector<net_t> &net_array, std::vector<terminal_t> &pin_array, int mode){
     std::vector<int> x_array;
     std::vector<int> y_array;
     cost =0;
     double length=0;
+    global_var_t *global_var = global_var_t::get_ref();
+    shape_t target_die_shape = global_var->get_die_shape();
     //std::vector<unsigned int> h_contour, v_contour;
     die_shape=b_node_t::pack2(tree_root, module_array);//, h_contour, v_contour);
     BOOST_FOREACH(auto net, net_array){
@@ -225,9 +240,13 @@ void solution_t::update_cost(std::vector<module_t> &module_array, std::vector<ne
         length += dy;
         x_array.clear(); y_array.clear();
     }    
-    length *= this->alpha;
+    wirelength = length;
+    length *= this->alpha[mode];
     double balance=die_shape.w<die_shape.h? (double)die_shape.h/(double)die_shape.w:(double)die_shape.w/(double)die_shape.h;
-    cost = die_shape.area() + length +(int)(balance*100000.);
+    int dw = abs((int)target_die_shape.w - (int)die_shape.w);
+    int dh = abs((int)target_die_shape.h - (int)die_shape.h);
+    double balance_0 =sqrt(dw*dw+dh*dh);
+    cost = die_shape.area() + length +(int)(balance_0*100000.);
     return;
 
 }
