@@ -16,51 +16,62 @@ struct random_t {
         THIRD_DEVIATION = 3
     };
     
+    static unsigned seed;
+    
     static random_t &get_ref(){
         static random_t inst;
         return inst;
     }
 
     static void init(unsigned _seed){
+        seed=_seed;
         srand(_seed);
     }
+
+    void reseed(unsigned int _seed){
+        seed=_seed;
+        srand(_seed);
+    }
+    
     dice_t rolling(){
         double u = rand() / (double)RAND_MAX;
         double v = rand() / (double)RAND_MAX;
-        double x = sqrt(-2 * log(u)) * cos(2 * M_PI * v) * std + mean;
-        if(x>mean-std && x<mean+std)
+        double x = sqrt(-2 * log(u)) * cos(2 * M_PI * v) * deviation + mean;
+        if(x>mean-deviation && x<mean+deviation)
             return FIRST_DEVIATION;
-        else if(x>mean-2*std && x<mean+2*std)
+        else if(x>mean-2*deviation && x<mean+2*deviation)
             return SECOND_DEVIATION;
         return THIRD_DEVIATION;    
     }
-
+    
 
 
 
     private:
-    static unsigned seed;
-    static constexpr double std = 4.0;
-    static constexpr double mean = 1.0;
-    random_t(){
-
-    }
     
-    void reseed(unsigned _seed){
-        seed = _seed;
-        srand(_seed);
+    static  double deviation;
+    static  double mean;
+    
+    random_t(){
     }
+    random_t(const random_t &);
+    random_t & operator=(const random_t&);
+    
+
+    
+    
     
 };
+
 
 struct solution_t {
     boost::shared_ptr<b_node_t> tree_root;
     std::vector<boost::shared_ptr<b_node_t> > lookup_tbl;
     double cost;
     shape_t die_shape;
-    static constexpr double alpha = 0.02;
+    static  double alpha;
     solution_t(){
-        tree_root = 0;
+        tree_root.reset();
         cost = std::numeric_limits<unsigned long int>::max();
     }
 
@@ -87,9 +98,9 @@ struct solution_t {
 };
 
 struct simulated_annealing_t {
-    static constexpr double tc_start = 100000.0;
-    static constexpr double tc_end = 0.00025;
-    static constexpr double cooling_factor = 0.999995;
+    static  double tc_start ;
+    static  double tc_end ;
+    static  double cooling_factor ;
     solution_t best_sol;
     solution_t cur_sol;
     
@@ -105,5 +116,6 @@ struct simulated_annealing_t {
     ///< TODO copy solution is an overhead
     solution_t get_next_solution(std::vector<module_t> & module_array, solution_t &cur_sol);
 };
+
 
 #endif

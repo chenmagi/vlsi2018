@@ -2,14 +2,14 @@
 #define _CLOCK_HPP_
 #include <ctime>
 
-struct timer_t {
+struct simple_timer_t {
     
-    static timer_t & get_ref(){
-        static timer_t inst;
+    static simple_timer_t & get_ref(){
+        static simple_timer_t inst;
         return inst;
     }
 
-    timer_t & reset(){
+    simple_timer_t & reset(){
         start = clock();
         return *this;
     }
@@ -19,8 +19,7 @@ struct timer_t {
     }
     private:
     clock_t start;
-    static timer_t inst;
-    timer_t(){
+    simple_timer_t(){
         start = clock();
     }    
 };

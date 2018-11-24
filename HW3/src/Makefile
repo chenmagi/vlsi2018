@@ -8,8 +8,9 @@ SOURCES+=main.cpp
 SOURCES+=sa.cpp
 
 CPPFLAGS+=-std=c++11 #-DBOOST_DISABLE_ASSERTS
-CPPFLAGS+=-DREMOVE_DUP_NET #remove redundant net when parsing testcase
-LDFLAGS=-lboost_system
+CPPFLAGS+=-v
+CPPFLAGS+=-DMYDEBUG
+LDFLAGS=-lboost_system #-lboost_filesystem for unix server
 
 
 include Rules.mk

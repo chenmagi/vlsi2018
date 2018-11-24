@@ -5,6 +5,14 @@
 #include <iostream>
 #include "globalvar.hpp"
 
+double random_t::deviation = 4.0;
+double random_t::mean = 1.0;
+double simulated_annealing_t::tc_start = 10000.0;
+double simulated_annealing_t::tc_end = 0.00025;
+double simulated_annealing_t::cooling_factor = 0.99995;
+double solution_t::alpha = 0.379;
+unsigned random_t::seed=1;
+
 
 solution_t simulated_annealing_t::get_next_solution(std::vector<module_t> & module_array, solution_t &cur_sol){
     
@@ -13,11 +21,11 @@ solution_t simulated_annealing_t::get_next_solution(std::vector<module_t> & modu
     
     random_t::dice_t op=random_t::get_ref().rolling();
     int num_of_modules = module_array.size();
-    int random_id0 = floor(rand()% (num_of_modules));
+    int random_id0 = (rand()% (num_of_modules));
     int random_id1;
     int tries = 4;
     do{
-        random_id1 = floor(rand()% (num_of_modules));
+        random_id1 = (rand()% (num_of_modules));
     }while(random_id0!=random_id1 && tries-->0);
     if(random_id0==random_id1){
         random_id1=(random_id0+3)%num_of_modules;
@@ -29,14 +37,14 @@ solution_t simulated_annealing_t::get_next_solution(std::vector<module_t> & modu
     
     
     switch(op){
-        case random_t::dice_t::FIRST_DEVIATION: ///< rotate
+        case random_t::FIRST_DEVIATION: ///< rotate
             b_node_t::swap(node1, node2);
         break;
-        case random_t::dice_t::SECOND_DEVIATION: ///< swap
+        case random_t::SECOND_DEVIATION: ///< swap
             node1->rotate();
         break;
         
-        case random_t::dice_t::THIRD_DEVIATION: ///< move
+        case random_t::THIRD_DEVIATION: ///< move
             node2->rotate();
             b_node_t::swap(node2, node1);
         break;
@@ -52,9 +60,10 @@ solution_t simulated_annealing_t::get_next_solution(std::vector<module_t> & modu
     std::cout<<" num of nodes in copy version of b-tree: "<< num_of_nodes << std::endl;
     std::cout << ostream.str() <<std::endl;
     */
+#if defined(MYDEBUG)
     b_node_t::dfs_visit(result.tree_root, &ret_count);
     BOOST_ASSERT(module_array.size()==ret_count);
-    
+#endif    
 
     return result;
 }
@@ -71,19 +80,23 @@ void simulated_annealing_t::run(std::vector<module_t> & module_array, std::vecto
 
     //std::vector<unsigned int> h_contour, v_contour;
     shape_t init_shape=b_node_t::pack2(init_tree, module_array);//, h_contour, v_contour);
+#if defined(MYDEBUG)    
     std::cout << "init shape="<<init_shape.w <<" x "<<init_shape.h <<std::endl;
-    
+#endif    
     
     cur_sol.build_from_b_tree(init_tree, module_array.size());
     cur_sol.update_cost(module_array,net_array, pin_array);
     best_sol = cur_sol;
+#if defined(MYDEBUG)    
     std::cout << "initial solution: "<<cur_sol.toString()<<std::endl;
-
+#endif
     global_var_t *global_var = global_var_t::get_ref();
     shape_t target_die_shape = global_var->get_die_shape();
     int iteration=0;
     int tune=0;
-    while(tc_current > this->tc_end && timer_t::get_ref().elapsed() < timeout){
+    int fine_tune=0;
+    double level=0.3;
+    while(tc_current > this->tc_end && simple_timer_t::get_ref().elapsed() < timeout){
         double old_cost = cur_sol.cost;
         solution_t new_solution = get_next_solution(module_array, cur_sol);
         new_solution.update_cost(module_array, net_array, pin_array);
@@ -94,20 +107,32 @@ void simulated_annealing_t::run(std::vector<module_t> & module_array, std::vecto
         }
 
         double prob = acceptance(new_solution.cost, old_cost, tc_current);
-        if(prob>=0.25){
+        if(prob>=level){
             cur_sol = new_solution;
             if(new_solution.cost < best_sol.cost)
                 best_sol = new_solution;
             tune=0;    
+            fine_tune++;
         }
         else {
             tune++;
+            fine_tune=0;
         }
         tc_current *= this->cooling_factor;
-        if(tune>=10000) cur_sol = best_sol;
-        std::cout<<"["<<iteration++<<"]"<<cur_sol.toString() << std::endl;
+        if(tune>=2000){
+            cur_sol = best_sol;
+            std::cout<<"-------------------------------"<<std::endl;
+            std::cout<<"-------------------------------"<<std::endl;
+            random_t::get_ref().reseed(random_t::get_ref().seed *4/3);
+            tune=0;
+            level -= 0.005;
+        }     
+        else if(fine_tune>=1000) level+=0.005;
+        std::cout<<"["<<iteration++<<"]"<<cur_sol.toString() <<", eslaped="<<
+           simple_timer_t::get_ref().elapsed()<<", best=" << best_sol.die_shape.w<<" x " <<
+           best_sol.die_shape.h << std::endl;
     }
-    if(timer_t::get_ref().elapsed() > timeout){
+    if(simple_timer_t::get_ref().elapsed() > timeout){
         std::cout<<"time out"<<std::endl;
     }
     return;
@@ -147,7 +172,7 @@ void solution_t::build_from_b_tree(boost::shared_ptr<b_node_t> src_root, int num
             ptr_current->lchild->parent = ptr_current;
             construct_queue.push(ptr_current->lchild);
         }
-        else ptr_current->lchild = NULL;
+        else ptr_current->lchild.reset();
         if(rchild!=NULL){
             bfs_queue.push(*rchild);
             ptr_current->rchild = boost::shared_ptr<b_node_t> (new b_node_t(0));
@@ -155,7 +180,7 @@ void solution_t::build_from_b_tree(boost::shared_ptr<b_node_t> src_root, int num
             ptr_current->rchild->parent = ptr_current;
             construct_queue.push(ptr_current->rchild);
         }
-        else ptr_current->rchild = NULL;
+        else ptr_current->rchild.reset();
     }    
 
     return;
@@ -201,7 +226,8 @@ void solution_t::update_cost(std::vector<module_t> &module_array, std::vector<ne
         x_array.clear(); y_array.clear();
     }    
     length *= this->alpha;
-    cost = die_shape.area() + length;
+    double balance=die_shape.w<die_shape.h? (double)die_shape.h/(double)die_shape.w:(double)die_shape.w/(double)die_shape.h;
+    cost = die_shape.area() + length +(int)(balance*100000.);
     return;
 
 }

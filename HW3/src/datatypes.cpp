@@ -341,7 +341,8 @@ void b_node_t::move(boost::shared_ptr<b_node_t>  a, boost::shared_ptr<b_node_t> 
             a->parent->rchild=child;
             if(child!=NULL) child->parent=a->parent;
         }
-        a->lchild=a->rchild=NULL;
+        a->lchild.reset();
+        a->rchild.reset();
         if(dst_root->lchild==NULL) { dst_root->lchild=a; a->parent=dst_root;}
         else if(dst_root->rchild==NULL) { dst_root->rchild=a; a->parent=dst_root;}
     }
@@ -376,14 +377,14 @@ boost::shared_ptr<b_node_t> b_node_t::tree_copy(boost::shared_ptr<b_node_t> src_
             *ptr_current->lchild = *lchild;
             construct_queue.push(ptr_current->lchild);
         }
-        else ptr_current->lchild = 0;
+        else ptr_current->lchild.reset();
         if(rchild!=NULL){
             bfs_queue.push(*rchild);
             ptr_current->rchild = boost::shared_ptr<b_node_t> (new b_node_t(0));
             *ptr_current->rchild = *rchild;
             construct_queue.push(ptr_current->rchild);
         }
-        else ptr_current->rchild = 0;
+        else ptr_current->rchild.reset();
     }    
     return dst_root;
 

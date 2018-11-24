@@ -110,7 +110,7 @@ int main1(int argc, char **argv){
 }
 
 int main(int argc, char **argv){
-  timer_t::get_ref().reset();
+  simple_timer_t::get_ref().reset();
   random_t::init(atoi(argv[4]));
   boost::shared_ptr<parser_t> block_parser(new parser_t(argv[1]));
   std::vector<module_t> module_array;
@@ -135,7 +135,7 @@ int main(int argc, char **argv){
   global_var->set_placement(PLACEMENT_HARD);
 
   simulated_annealing_t sa;
-  sa.run(module_array, net_array, pin_array, 20*60);
+  sa.run(module_array, net_array, pin_array, 60*5);
   solution_t best_sol = sa.best_sol;
 
   std::cout<<"final result="<<best_sol.toString()<<std::endl;

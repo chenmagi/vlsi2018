@@ -146,7 +146,7 @@ struct b_node_t {
     bool rotated;
 
     b_node_t(unsigned int v){
-        lchild=rchild=parent=NULL;
+        //lchild=rchild=parent=NULL;
         module_id=v;
         rotated=false;
     }
