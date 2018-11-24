@@ -182,7 +182,7 @@ static int parse_line_for_block(std::string &line, module_t &module){
           }
         }
         else {
-          BOOST_ASSERT_MSG(len-i+1>=key1_len, buf);
+          BOOST_ASSERT(len-i+1>=key1_len);
         }
       break;
       case st_tail:
@@ -197,7 +197,7 @@ static int parse_line_for_block(std::string &line, module_t &module){
         }
         else if(type==SOFT_MODULE){
           ///< TODO implement softmodule parser
-          BOOST_ASSERT_MSG(type==HARD_MODULE, buf);
+          BOOST_ASSERT(type==HARD_MODULE);
         }
       break;
     }
@@ -221,11 +221,11 @@ int parser_t::do_block_file_parse(std::vector<module_t> &vec,  int *ptr_terminal
     ///< TODO refer to settings in global_var, and implement parser for .softblocks file
     if(line_idx==0){
       rc = parse_line_by_key(line,"NumHardRectilinearBlocks", &block_count);
-      BOOST_ASSERT_MSG(rc==0, line.c_str());
+      BOOST_ASSERT(rc==0);
     }
     else if(line_idx==1){
       rc = parse_line_by_key(line,"NumTerminals", &terminal_count);
-      BOOST_ASSERT_MSG(rc==0, line.c_str());
+      BOOST_ASSERT(rc==0);
     }
     else {
       rc = parse_line_for_block(line, obj);
@@ -288,11 +288,11 @@ int parser_t::do_net_file_parse(std::vector<net_t> &vec){
   while(std::getline(*infile, line)){
     if(line_idx==0){
       rc = parse_line_by_key(line,"NumNets", &net_count);
-      BOOST_ASSERT_MSG(rc==0, line.c_str());
+      BOOST_ASSERT(rc==0);
     }
     else if(line_idx==1){
       rc = parse_line_by_key(line,"NumPins", &pin_count);
-      BOOST_ASSERT_MSG(rc==0, line.c_str());
+      BOOST_ASSERT(rc==0);
     }
     else {
       if(remains==0){

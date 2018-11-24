@@ -26,7 +26,7 @@ shape_t shape_t::build_from_string(const char *str){
             xy[idx++]=value; value=0; continue;}
         else if(ch==' ') continue;
         else {
-            BOOST_ASSERT_MSG(ch==255, str);
+            BOOST_ASSERT(ch==255);
         }
     }
     if(idx==num_of_vec){
@@ -36,7 +36,7 @@ shape_t shape_t::build_from_string(const char *str){
         obj.h = h;
     }
     else {
-        BOOST_ASSERT_MSG(idx==num_of_vec, "not enough vertex count");
+        BOOST_ASSERT(idx==num_of_vec);
     }
     return obj;    
 }
@@ -328,7 +328,7 @@ void b_node_t::move(boost::shared_ptr<b_node_t>  a, boost::shared_ptr<b_node_t> 
         return;
     if(a->parent==dst_root)
         return;
-    BOOST_ASSERT_MSG(a->is_as_root()==false, "illegal instruction");
+    BOOST_ASSERT(a->is_as_root()==false);
     if(value==1){
         boost::shared_ptr<b_node_t> child;
         if(a->lchild != NULL) child=a->lchild;
