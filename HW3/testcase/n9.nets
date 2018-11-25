@@ -1,0 +1,41 @@
+NumNets : 13
+NumPins : 1873
+NetDegree : 2
+p1
+sb6
+NetDegree : 2
+p2
+sb5
+NetDegree : 2
+p3
+sb3
+NetDegree : 2
+p2
+sb7
+NetDegree : 2
+p1
+sb2
+NetDegree : 2
+p2
+sb8
+NetDegree : 2
+p3
+sb2
+NetDegree : 2
+p4
+sb1
+NetDegree : 2
+p5
+sb3
+NetDegree : 2
+p6
+sb5
+NetDegree : 2
+p7
+sb0
+NetDegree : 2
+p8
+sb8
+NetDegree : 2
+p9
+sb4
