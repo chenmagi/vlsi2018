@@ -113,7 +113,7 @@ int main1(int argc, char **argv){
 #endif
 
 void usage(const char *exec_name){
-  std::cout<<"Usage: "<<exec_name<<" .hardblocks .nets .pl .floorplan" <<std::endl;
+  std::cout<<"Usage: "<<exec_name<<" .hardblocks .nets .pl .floorplan ratio" <<std::endl;
 }
 #if (1)
 void do_seed_init(const char *dataset){
@@ -135,7 +135,7 @@ void do_seed_init(const char *value){
 
 int main(int argc, char **argv){
   simple_timer_t::get_ref().reset();
-  if(argc!=5){
+  if(argc!=6){
     usage(argv[0]);
     return 0;
   }
@@ -157,13 +157,14 @@ int main(int argc, char **argv){
   lines = pin_parser->do_pl_file_parse(pin_array);
 
 
-  target_die_shape = calc_for_die_shape(module_array, 0.1);
+  target_die_shape = calc_for_die_shape(module_array, atof(argv[5]));
   std::cout<<"target die shape="<<target_die_shape.w<<" x "<<target_die_shape.h<<std::endl;
+  std::cout<<"white space ratio="<<atof(argv[5])<<std::endl;
   global_var->set_die_shape(target_die_shape);
   global_var->set_placement(PLACEMENT_HARD);
 
   simulated_annealing_t sa;
-  sa.run(module_array, net_array, pin_array, 60*19);
+  sa.run(module_array, net_array, pin_array, 60*20-4);
 
   std::cout<<"elapsed="<<simple_timer_t::get_ref().elapsed()<<std::endl;
   std::cout<<"final result[0]="<<sa.fit_sol.toString()<<std::endl;

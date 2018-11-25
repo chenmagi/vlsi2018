@@ -8,9 +8,9 @@
 double random_t::deviation = 4.0;
 double random_t::mean = 1.0;
 double simulated_annealing_t::tc_start = 10000.0;
-double simulated_annealing_t::tc_end = 0.00025;
+double simulated_annealing_t::tc_end = 0.5;
 //double simulated_annealing_t::cooling_factor = 0.99995;
-double simulated_annealing_t::cooling_factor = 0.99995;
+double simulated_annealing_t::cooling_factor = 0.00005;
 //double solution_t::alpha = 0.379;
 double solution_t::alpha[] = {0.379, 0.379};
 unsigned random_t::seed=1;
@@ -99,6 +99,11 @@ void simulated_annealing_t::run(std::vector<module_t> & module_array, std::vecto
     int tune=0;
     int fine_tune=0;
     double level=0.3;
+    int sa_loop=0;
+    
+    do {
+      double c_fac=1.0-this->cooling_factor/pow(10,sa_loop);
+      tc_current = tc_start/pow(1.414, sa_loop);
     while(tc_current > this->tc_end && simple_timer_t::get_ref().elapsed() < timeout){
         double old_cost = cur_sol.cost;
         solution_t new_solution = get_next_solution(module_array, cur_sol);
@@ -112,36 +117,40 @@ void simulated_annealing_t::run(std::vector<module_t> & module_array, std::vecto
         }
 
         double prob = acceptance(new_solution.cost, old_cost, tc_current);
-        tc_current *= this->cooling_factor;
+        tc_current *= c_fac;
         if(prob>=level){
             cur_sol = new_solution;
             if(new_solution.cost < best_sol.cost)
                 best_sol = new_solution;
             tune=0;    
-            fine_tune++;
 	    continue;
         }
         else {
             tune++;
-            fine_tune=0;
         }
         if(tune>=2000){
+            tune=0;
             cur_sol = best_sol;
-#if defined(MYDEBUG)
+#if (0)
             std::cout<<"-------------------------------"<<std::endl;
             std::cout<<"-------------------------------"<<std::endl;
-#endif
             random_t::get_ref().reseed(random_t::get_ref().seed *4/3);
             tune=0;
             level -= 0.005;
+#endif
         }     
-        else if(fine_tune>=1000) level+=0.005;
-        /*
+#if defined(MYDEBUG)
         std::cout<<"["<<iteration++<<"]"<<cur_sol.toString() <<", eslaped="<<
            simple_timer_t::get_ref().elapsed()<<", best=" << best_sol.die_shape.w<<" x " <<
-           best_sol.die_shape.h << std::endl;
-        */
+           best_sol.die_shape.h << ", tc="<<(double)tc_current<<std::endl;
+#endif
     }
+        sa_loop++;
+        if(fit_sol.die_shape.w <= target_die_shape.w && fit_sol.die_shape.h <= target_die_shape.h)
+           break;
+        cur_sol = best_sol;
+       
+    }while(simple_timer_t::get_ref().elapsed()<timeout);
 #if defined(MYDEBUG)
     if(simple_timer_t::get_ref().elapsed() > timeout){
         std::cout<<"time out"<<std::endl;
@@ -212,7 +221,8 @@ void solution_t::update_cost(std::vector<module_t> &module_array, std::vector<ne
     shape_t target_die_shape = global_var->get_die_shape();
     //std::vector<unsigned int> h_contour, v_contour;
     die_shape=b_node_t::pack2(tree_root, module_array);//, h_contour, v_contour);
-    BOOST_FOREACH(auto net, net_array){
+    for(int k=0;k<net_array.size();++k){
+        net_t net = net_array[k];
         for(int i=0;i<net.module_ids.size();++i){
             unsigned int id = net.module_ids[i];
             unsigned int cx, cy;

@@ -43,7 +43,7 @@ int build_b_tree(std::vector<module_t> &vec, std::vector<tiny_module_t> &ordered
     ///< setup root node
     pop_idx[0]=1;
     root->module_id = ordered[0].id;
-    root->parent = NULL;
+    root->parent.reset();
     //vec[root->module_id].ptr_node = root;
     ptr_current = row_root = root;
     row_width += vec[root->module_id].shape.w;
@@ -83,7 +83,8 @@ int build_b_tree(std::vector<module_t> &vec, std::vector<tiny_module_t> &ordered
 
 shape_t calc_for_die_shape(std::vector<module_t> &vec, double ratio){
     double total_area=0;
-    BOOST_FOREACH(auto e, vec){
+    for(int k=0;k<vec.size();k++){
+        module_t e = vec[k];
         total_area+=e.shape.area();
     }    
     total_area*=(1.0+ratio);

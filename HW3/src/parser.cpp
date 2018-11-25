@@ -334,7 +334,8 @@ int parser_t::do_net_file_parse(std::vector<net_t> &vec){
 
 
 int parser_t::build_net_ids_to_module(std::vector<module_t> &module_array, std::vector<net_t> &net_array){
-  BOOST_FOREACH(auto e, net_array){
+  for(int k=0;k<net_array.size();++k){
+    net_t e = net_array[k];
     int i;
     for(i=0;i<e.module_ids.size();++i){
       module_array[e.module_ids[i]].net_ids.push_back(e.id);
