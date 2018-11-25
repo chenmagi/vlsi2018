@@ -247,6 +247,14 @@ struct module_t {
         unsigned int tmp[4][2]={{x,y}, {x, y+h}, {x+w, y+h}, {x+w, y}};
         memcpy(rect, tmp, sizeof(sizeof(unsigned int)*8));
     }
+    inline void get_rect(unsigned int rect[4][2],bool rotated){
+        unsigned int x = origin.x;
+        unsigned int y = origin.y;
+        unsigned int w = rotated?shape.h:shape.w;
+        unsigned int h = rotated?shape.w:shape.h;
+        unsigned int tmp[4][2]={{x,y}, {x, y+h}, {x+w, y+h}, {x+w, y}};
+        memcpy(rect, tmp, sizeof(sizeof(unsigned int)*8));
+    }
 
     ///< HPWL calculation for module-to-terminal and module-to-module
     inline int wirelength_to(terminal_t &t){

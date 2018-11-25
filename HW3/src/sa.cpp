@@ -8,11 +8,11 @@
 double random_t::deviation = 4.0;
 double random_t::mean = 1.0;
 double simulated_annealing_t::tc_start = 10000.0;
-double simulated_annealing_t::tc_end = 0.5;
+double simulated_annealing_t::tc_end = 10.0;//0.5;
 //double simulated_annealing_t::cooling_factor = 0.99995;
 double simulated_annealing_t::cooling_factor = 0.00005;
 //double solution_t::alpha = 0.379;
-double solution_t::alpha[] = {0.379, 0.379};
+double solution_t::alpha[] = {1.2, 1.2};
 unsigned random_t::seed=1;
 
 
@@ -100,6 +100,7 @@ void simulated_annealing_t::run(std::vector<module_t> & module_array, std::vecto
     int fine_tune=0;
     double level=0.3;
     int sa_loop=0;
+    int fit_update=0;
     
     do {
       double c_fac=1.0-this->cooling_factor/pow(10,sa_loop);
@@ -108,12 +109,17 @@ void simulated_annealing_t::run(std::vector<module_t> & module_array, std::vecto
         double old_cost = cur_sol.cost;
         solution_t new_solution = get_next_solution(module_array, cur_sol);
         new_solution.update_cost(module_array, net_array, pin_array, iteration<40000?0:1);
+        
         if(new_solution.die_shape.w <= target_die_shape.w && new_solution.die_shape.h <= target_die_shape.h){
-            fit_sol = new_solution;
+            if(fit_sol.wirelength> new_solution.wirelength){
+              fit_sol = new_solution;
+              fit_update++;
+            }
 #if defined(MYDEBUG)
             std::cout<<"find fit solution = "<<fit_sol.toString()<<std::endl;
 #endif
-            break;
+            if(fit_update==10)
+              break;
         }
 
         double prob = acceptance(new_solution.cost, old_cost, tc_current);
@@ -256,7 +262,44 @@ void solution_t::update_cost(std::vector<module_t> &module_array, std::vector<ne
     int dw = abs((int)target_die_shape.w - (int)die_shape.w);
     int dh = abs((int)target_die_shape.h - (int)die_shape.h);
     double balance_0 =sqrt(dw*dw+dh*dh);
-    cost = die_shape.area() + length +(int)(balance_0*100000.);
+    cost = target_die_shape.area()*(1.0+balance_0) + length ;//+(int)(balance_0*10000.);
     return;
 
+}
+static bool contains(unsigned int rect0[4][2], unsigned int rect1[4][2]){
+    for(int i=0;i<4;++i){
+        int x=rect0[i][0];
+        int y=rect0[i][1];
+        if(x>rect1[0][0] && x<rect1[2][0])
+            if(y>rect1[0][1] && y < rect1[2][1])
+                return true;
+    }
+    return false;
+}
+bool solution_t::verify(std::vector<module_t> & module_array){
+    unsigned int rect0[4][2]={0};
+    unsigned int rect1[4][2]={0};
+    int overlap_count=0;
+    for(int i=0;i<this->lookup_tbl.size();++i){
+      bool rotated_0 = lookup_tbl[i]->rotated;
+      module_array[i].get_rect(rect0,rotated_0);
+      for(int k=0;k<module_array.size();++k){
+         if(k==i) continue;
+         bool rotated_1 = lookup_tbl[k]->rotated;
+         module_array[k].get_rect(rect1,rotated_1);
+         if(contains(rect0,rect1) || contains(rect1, rect0)){
+#if defined(MYDEBUG)
+           std::cout<<"sb"<<i<<" overlaps sb"<<k<<std::endl;
+           std::cout<<"sb"<<i<<" "<<module_array[i].origin.x <<" "<<module_array[i].origin.y;
+           std::cout<<" "<<module_array[i].shape.w <<" "<<module_array[i].shape.h;
+           std::cout<<" "<<this->lookup_tbl[i]->rotated<<std::endl;
+           std::cout<<"sb"<<k<<" "<<module_array[k].origin.x <<" "<<module_array[k].origin.y;
+           std::cout<<" "<<module_array[k].shape.w <<" "<<module_array[k].shape.h;
+           std::cout<<" "<<this->lookup_tbl[k]->rotated<<std::endl;
+#endif
+           return false;
+         }
+      }
+    }
+    return true;
 }

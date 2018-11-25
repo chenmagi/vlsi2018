@@ -7,15 +7,16 @@ SOURCES+=algo.cpp
 SOURCES+=main.cpp
 SOURCES+=sa.cpp
 
-CPPFLAGS+=-std=c++11 #-DBOOST_DISABLE_ASSERTS
+#CPPFLAGS+=-std=c++11 #-DBOOST_DISABLE_ASSERTS
 #CPPFLAGS+=-DMYDEBUG
-LDFLAGS=-lboost_system -lboost_filesystem 
+LDFLAGS=-lboost_filesystem 
 
 
 include Rules.mk
 
 
 all: ${PROG}
+	cp -f ${PROG} ../bin
 
 clean:
 	rm -f ${PROG}

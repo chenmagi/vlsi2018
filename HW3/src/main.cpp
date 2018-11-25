@@ -117,15 +117,22 @@ void usage(const char *exec_name){
 }
 #if (1)
 void do_seed_init(const char *dataset){
-  boost::filesystem::path p(dataset);
-  if(strcmp(p.filename().c_str(), "n100.hardblocks")==0){
-    random_t::init(15753);
+  //boost::filesystem::path p(dataset);
+  int len = strlen(dataset);
+  int len2=strlen("n100.hardblocks");
+  if(len<len2){
+	random_t::init(1);
+    return;
   }
-  else if(strcmp(p.filename().c_str(), "n200.hardblocks")==0)
-    random_t::init(26362);
-  else if(strcmp(p.filename().c_str(), "n300.hardblocks")==0)
-    random_t::init(27991);
-  else random_t::init(791233);  
+  
+  if(strcmp(dataset+(len-len2), "n100.hardblocks")==0){
+    random_t::init(16700);
+  }
+  else if(strcmp(dataset+(len-len2), "n200.hardblocks")==0)
+    random_t::init(7563);
+  else if(strcmp(dataset+(len-len2), "n300.hardblocks")==0)
+    random_t::init(19853);
+  else random_t::init(1);  
 }
 #else 
 void do_seed_init(const char *value){
@@ -164,12 +171,14 @@ int main(int argc, char **argv){
   global_var->set_placement(PLACEMENT_HARD);
 
   simulated_annealing_t sa;
+  //sa.run(module_array, net_array, pin_array, 60*19);
   sa.run(module_array, net_array, pin_array, 60*20-4);
 
   std::cout<<"elapsed="<<simple_timer_t::get_ref().elapsed()<<std::endl;
-  std::cout<<"final result[0]="<<sa.fit_sol.toString()<<std::endl;
-  std::cout<<"final result[1]="<<sa.best_sol.toString()<<std::endl;
-  std::cout<<"final result[2]="<<sa.cur_sol.toString()<<std::endl;
+  std::cout<<"[die size fit]="<<sa.fit_sol.toString()<<std::endl;
+  std::cout<<"[best cost solution]="<<sa.best_sol.toString()<<std::endl;
+  std::cout<<"[last solution when run sa]="<<sa.cur_sol.toString()<<std::endl;
+  std::cout<<"verify result="<<sa.fit_sol.verify(module_array)<<std::endl;
   
   std::ofstream file;
   file.open (argv[4]);

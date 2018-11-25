@@ -239,7 +239,7 @@ shape_t b_node_t::pack2(boost::shared_ptr<b_node_t>root,std::vector<module_t> & 
 static bool contains(unsigned int rect0[4][2], unsigned int rect1[4][2]){
     for(int i=0;i<4;++i){
         int x=rect0[i][0];
-        int y=rect1[i][1];
+        int y=rect0[i][1];
         if(x>rect1[0][0] && x<rect1[2][0])
             if(y>rect1[0][1] && y < rect1[2][1])
                 return true;

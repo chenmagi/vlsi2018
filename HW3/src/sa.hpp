@@ -81,6 +81,7 @@ struct solution_t {
 
     void update_cost(std::vector<module_t> &module_array, std::vector<net_t> &net_array, 
     std::vector<terminal_t> &pin_array, int mode);    
+    bool verify(std::vector<module_t> &module_array);
 
 
     inline solution_t & operator=(const solution_t &other){
