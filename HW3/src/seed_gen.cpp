@@ -115,7 +115,7 @@ int main1(int argc, char **argv){
 void usage(const char *exec_name){
   std::cout<<"Usage: "<<exec_name<<" .hardblocks .nets .pl .floorplan ratio" <<std::endl;
 }
-#if (1)
+#if (0)
 void do_seed_init(const char *dataset, const char *ratio_str){
   //boost::filesystem::path p(dataset);
   int len = strlen(dataset);
@@ -158,7 +158,7 @@ int main(int argc, char **argv){
     usage(argv[0]);
     return 0;
   }
-  do_seed_init(argv[1],argv[5]);
+  do_seed_init(argv[4]);
   boost::shared_ptr<parser_t> block_parser(new parser_t(argv[1]));
   std::vector<module_t> module_array;
   
@@ -170,6 +170,7 @@ int main(int argc, char **argv){
   int terminal_count;
   global_var_t *global_var = global_var_t::get_ref();
   shape_t target_die_shape;
+  global_var->timing_limit=true; 
 
   int lines=block_parser->do_block_file_parse(module_array, &terminal_count);
   lines = net_parser->do_net_file_parse(net_array);
@@ -184,7 +185,7 @@ int main(int argc, char **argv){
 
   simulated_annealing_t sa;
   //sa.run(module_array, net_array, pin_array, 60*19);
-  sa.run(module_array, net_array, pin_array, 60*20-4);
+  sa.run(module_array, net_array, pin_array, 30);
 
   std::cout<<"elapsed="<<simple_timer_t::get_ref().elapsed()<<std::endl;
   std::cout<<"[die size fit]="<<sa.fit_sol.toString()<<std::endl;
@@ -192,6 +193,7 @@ int main(int argc, char **argv){
   std::cout<<"[last solution when run sa]="<<sa.cur_sol.toString()<<std::endl;
   std::cout<<"verify result="<<sa.fit_sol.verify(module_array)<<std::endl;
   
+#if (0)
   std::ofstream file;
   file.open (argv[4]);
   file << "Wirelength " << sa.fit_sol.wirelength <<"\n";
@@ -202,6 +204,7 @@ int main(int argc, char **argv){
     file <<" "<<sa.fit_sol.lookup_tbl[k]->rotated<<"\n";
   }
   file.close();
+#endif
 
 
   return 0;

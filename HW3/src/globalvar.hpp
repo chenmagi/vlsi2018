@@ -30,18 +30,27 @@ struct global_var_t {
     void set_die_shape(shape_t shape){
         die_shape = shape;
     }
+    void set_target_wirelength(double v){
+      target_wirelength = v;
+    }
+    double get_target_wirelength(void){
+      return target_wirelength;
+    }
     shape_t get_die_shape(){
         return die_shape;
     }
+    bool timing_limit;
     private:
     global_var_t(placement_t mode){
         placement = mode;
         white_space_ratio=0.1;
-        
+        target_wirelength = -1;
+        timing_limit=false;
     }
     placement_t placement;
     double white_space_ratio;
     shape_t die_shape; 
+    double target_wirelength;
     
 
 };

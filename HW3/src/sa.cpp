@@ -8,11 +8,10 @@
 double random_t::deviation = 4.0;
 double random_t::mean = 1.0;
 double simulated_annealing_t::tc_start = 10000.0;
-double simulated_annealing_t::tc_end = 10.0;//0.5;
+double simulated_annealing_t::tc_end = 25.0;
 //double simulated_annealing_t::cooling_factor = 0.99995;
 double simulated_annealing_t::cooling_factor = 0.00005;
-//double solution_t::alpha = 0.379;
-double solution_t::alpha[] = {1.2, 1.2};
+double solution_t::alpha[] = {100000, 100000};
 unsigned random_t::seed=1;
 
 
@@ -89,79 +88,71 @@ void simulated_annealing_t::run(std::vector<module_t> & module_array, std::vecto
     cur_sol.build_from_b_tree(init_tree, module_array.size());
     cur_sol.update_cost(module_array,net_array, pin_array, 0);
     best_sol = cur_sol;
-    fit_sol = cur_sol;
 #if defined(MYDEBUG)    
     std::cout << "initial solution: "<<cur_sol.toString()<<std::endl;
 #endif
     global_var_t *global_var = global_var_t::get_ref();
     shape_t target_die_shape = global_var->get_die_shape();
+    double target_wirelength = global_var->get_target_wirelength();
     int iteration=0;
-    int tune=0;
-    int fine_tune=0;
+    //double level=0.8;
     double level=0.3;
     int sa_loop=0;
-    int fit_update=0;
+    bool found=false;
+    fit_sol.wirelength= std::numeric_limits<unsigned int>::max();
     
     do {
-      double c_fac=1.0-this->cooling_factor/pow(10,sa_loop);
+      double c_fac=1.0-this->cooling_factor/pow(2,sa_loop);
       tc_current = tc_start/pow(1.414, sa_loop);
+      int continuous_reject=0, global_reject=0, op_count=0;
     while(tc_current > this->tc_end && simple_timer_t::get_ref().elapsed() < timeout){
         double old_cost = cur_sol.cost;
         solution_t new_solution = get_next_solution(module_array, cur_sol);
         new_solution.update_cost(module_array, net_array, pin_array, iteration<40000?0:1);
-        
+        op_count++;
         if(new_solution.die_shape.w <= target_die_shape.w && new_solution.die_shape.h <= target_die_shape.h){
-            if(fit_sol.wirelength> new_solution.wirelength){
+            if(fit_sol.wirelength > new_solution.wirelength){
+              found=true;
               fit_sol = new_solution;
-              fit_update++;
+              if(global_var->timing_limit) break;
             }
-#if defined(MYDEBUG)
-            std::cout<<"find fit solution = "<<fit_sol.toString()<<std::endl;
-#endif
-            if(fit_update==10)
-              break;
         }
-
         double prob = acceptance(new_solution.cost, old_cost, tc_current);
         tc_current *= c_fac;
-        if(prob>=level){
-            cur_sol = new_solution;
-            if(new_solution.cost < best_sol.cost)
-                best_sol = new_solution;
-            tune=0;    
-	    continue;
-        }
-        else {
-            tune++;
-        }
-        if(tune>=2000){
-            tune=0;
-            cur_sol = best_sol;
-#if (0)
-            std::cout<<"-------------------------------"<<std::endl;
-            std::cout<<"-------------------------------"<<std::endl;
-            random_t::get_ref().reseed(random_t::get_ref().seed *4/3);
-            tune=0;
-            level -= 0.005;
-#endif
-        }     
+        if(prob >= level){
+          cur_sol = new_solution;
+          if(new_solution.cost < best_sol.cost)
+            best_sol = new_solution;
+          continuous_reject=0;
 #if defined(MYDEBUG)
         std::cout<<"["<<iteration++<<"]"<<cur_sol.toString() <<", eslaped="<<
            simple_timer_t::get_ref().elapsed()<<", best=" << best_sol.die_shape.w<<" x " <<
            best_sol.die_shape.h << ", tc="<<(double)tc_current<<std::endl;
 #endif
+        }
+        else {
+         iteration++;
+         continuous_reject++;
+         global_reject++;
+        }
+        if(continuous_reject>2000){
+           ///< perturbe again
+           cur_sol = best_sol;
+        }
+
     }
         sa_loop++;
-        if(fit_sol.die_shape.w <= target_die_shape.w && fit_sol.die_shape.h <= target_die_shape.h)
+        if(found==true && ((double)global_reject)/((double)op_count) > 0.7){
+           break;
+        }
+        if(fit_sol.wirelength<=target_wirelength)
+           break;
+        if(global_var->timing_limit==true && found==true)
            break;
         cur_sol = best_sol;
        
     }while(simple_timer_t::get_ref().elapsed()<timeout);
-#if defined(MYDEBUG)
-    if(simple_timer_t::get_ref().elapsed() > timeout){
-        std::cout<<"time out"<<std::endl;
-    }
-#endif
+
     return;
 
 
@@ -225,6 +216,7 @@ void solution_t::update_cost(std::vector<module_t> &module_array, std::vector<ne
     double length=0;
     global_var_t *global_var = global_var_t::get_ref();
     shape_t target_die_shape = global_var->get_die_shape();
+    double target_wirelength = global_var->get_target_wirelength();
     //std::vector<unsigned int> h_contour, v_contour;
     die_shape=b_node_t::pack2(tree_root, module_array);//, h_contour, v_contour);
     for(int k=0;k<net_array.size();++k){
@@ -257,12 +249,21 @@ void solution_t::update_cost(std::vector<module_t> &module_array, std::vector<ne
         x_array.clear(); y_array.clear();
     }    
     wirelength = length;
-    length *= this->alpha[mode];
     double balance=die_shape.w<die_shape.h? (double)die_shape.h/(double)die_shape.w:(double)die_shape.w/(double)die_shape.h;
-    int dw = abs((int)target_die_shape.w - (int)die_shape.w);
-    int dh = abs((int)target_die_shape.h - (int)die_shape.h);
+    int dw = (die_shape.w <=target_die_shape.w )
+             ?0:abs((int)target_die_shape.w - (int)die_shape.w);
+    int dh = (die_shape.h <=target_die_shape.h )
+            ?0:abs((int)target_die_shape.h - (int)die_shape.h);
+#if (0)
+    length *= this->alpha[mode];
     double balance_0 =sqrt(dw*dw+dh*dh);
-    cost = target_die_shape.area()*(1.0+balance_0) + length ;//+(int)(balance_0*10000.);
+    cost = die_shape.area() + length +(int)(balance_0*100000.);
+#else
+    wirelength = length;
+    double balance_0 =sqrt(dw*dw+dh*dh);
+    cost = 100000.0*balance_0; ///< hinge loss for die size constraint
+    cost += (double)length;
+#endif
     return;
 
 }
