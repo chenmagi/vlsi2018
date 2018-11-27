@@ -1,0 +1,5 @@
+--How to Compile
+	Type "make" under this directory. The execution file will be generated in this same directory. 
+	Type "make clean" to remove all intermediate object files and execution file.
+--How to Run
+Usage: ./fm_part <cell file> <net file>        
