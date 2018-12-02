@@ -4,6 +4,6 @@
 #include "datatypes.hpp"
 #include <vector>
 #if defined(USE_UI)
-void show_result(const char *name,solution_t & solution, std::vector<module_t> &module_array,  char *fname=NULL);
+void show_result(const char *name,solution_t & solution,  char *fname=NULL);
 #endif
 #endif

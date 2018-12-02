@@ -258,32 +258,6 @@ void b_node_t::swap(boost::shared_ptr<b_node_t> a, boost::shared_ptr<b_node_t> b
     a->module_id=b->module_id; b->module_id=tmp;
     a->rotated=b->rotated; b->rotated=rotated;
    
-/*
-    boost::shared_ptr<b_node_t> parent_of_a = a->parent;
-    boost::shared_ptr<b_node_t> parent_of_b = b->parent;
-    boost::shared_ptr<b_node_t> lchild_of_a = a->lchild;
-    boost::shared_ptr<b_node_t> rchild_of_a = a->rchild;
-    boost::shared_ptr<b_node_t> lchild_of_b = b->lchild;
-    boost::shared_ptr<b_node_t> rchild_of_b = b->rchild;
-
-    boost::shared_ptr<b_node_t> tmp = b;
-    bool a_is_lchild = a->is_as_lchild();
-    bool b_is_lchild = b->is_as_lchild();
-    if(a_is_lchild) parent_of_a->lchild = b; else parent_of_a->rchild=b;
-    if(b_is_lchild) parent_of_b->lchild = a; else parent_of_b->rchild=a;
-
-    a->parent = parent_of_b;
-    b->parent = parent_of_a;
-    a->lchild = lchild_of_b;
-    a->rchild = rchild_of_b;
-    if(a->lchild!=NULL) a->lchild->parent = a;
-    if(a->rchild!=NULL) a->rchild->parent = a;
-    b->lchild = lchild_of_a;
-    b->rchild = rchild_of_a;
-    if(b->lchild!=NULL) b->lchild->parent = b;
-    if(b->rchild!=NULL) b->rchild->parent = b;
-    std::cout<<"end of swap"<<a->module_id<<", "<<b->module_id<<std::endl;
-*/
 }
 void b_node_t::move(boost::shared_ptr<b_node_t>  a, boost::shared_ptr<b_node_t> dst_root){
     int value = a->num_of_children();

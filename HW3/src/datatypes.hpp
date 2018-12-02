@@ -224,6 +224,7 @@ struct module_t {
         type = other.type;
         id = other.id;
         shape = other.shape;
+        origin = other.origin;
         aspect_lower = other.aspect_lower;
         aspect_upper = other.aspect_upper;
         net_ids = other.net_ids;

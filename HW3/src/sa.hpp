@@ -67,6 +67,7 @@ struct random_t {
 struct solution_t {
     boost::shared_ptr<b_node_t> tree_root;
     std::vector<boost::shared_ptr<b_node_t> > lookup_tbl;
+    std::vector<module_t> modules;
     double cost;
     shape_t die_shape;
     static  double alpha[2];
@@ -79,9 +80,9 @@ struct solution_t {
 
     void build_from_b_tree(boost::shared_ptr<b_node_t> src_root, int num_of_nodes);
 
-    void update_cost(std::vector<module_t> &module_array, std::vector<net_t> &net_array, 
-    std::vector<terminal_t> &pin_array, int mode);    
-    bool verify(std::vector<module_t> &module_array, bool flag);
+    void update_cost(std::vector<net_t> &net_array, 
+        std::vector<terminal_t> &pin_array, int mode);    
+    bool verify(bool flag);
 
 
     inline solution_t & operator=(const solution_t &other){
@@ -89,6 +90,7 @@ struct solution_t {
         cost = other.cost;
         die_shape = other.die_shape;
 	    wirelength = other.wirelength;
+        modules.assign(other.modules.begin(),other.modules.end());
         return *this;
     }
 
@@ -119,8 +121,7 @@ struct simulated_annealing_t {
             return 1.0;
         else return exp((old_cost - new_cost)/tc);
     }
-    ///< TODO copy solution is an overhead
-    solution_t get_next_solution(std::vector<module_t> & module_array, solution_t &cur_sol);
+    solution_t get_next_solution(solution_t &cur_sol);
 };
 
 
