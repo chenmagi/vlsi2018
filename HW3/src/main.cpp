@@ -28,7 +28,7 @@ void do_seed_init(const char *dataset, const char *ratio_str){
   if(getenv("hw3_time_limit")!=NULL)
     global_var->timing_limit=true; 
   if(strcmp(dataset+(len-len2), "n100.hardblocks")==0){
-    random_t::init(16700);
+    random_t::init(23151);
     global_var->set_target_wirelength(215143);
   }
   else if(strcmp(dataset+(len-len2), "n200.hardblocks")==0){
