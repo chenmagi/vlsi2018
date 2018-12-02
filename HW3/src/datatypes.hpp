@@ -161,6 +161,7 @@ struct b_node_t {
     }
 
     inline bool is_as_rchild(void){
+        
         if((parent->rchild!=NULL) && parent->rchild->module_id==module_id)
             return true;
         else return false;
@@ -172,7 +173,7 @@ struct b_node_t {
         return num;
     }
     inline void rotate(void){
-        rotated = (rotated==true)?false:true;
+        rotated = !rotated;
     }
 
     inline b_node_t& operator=(const b_node_t& other){
@@ -188,7 +189,6 @@ struct b_node_t {
     static void swap(boost::shared_ptr<b_node_t> a, boost::shared_ptr<b_node_t> b);
     static void move(boost::shared_ptr<b_node_t> a, boost::shared_ptr<b_node_t> dst_root);
     
-    static shape_t pack(boost::shared_ptr<b_node_t>root,std::vector<module_t> & module_array, std::vector<unsigned int> &horz_contour,std::vector<unsigned int>&vert_contour);
     static shape_t pack2(boost::shared_ptr<b_node_t>root,std::vector<module_t> & module_array);
     static int dfs_visit(boost::shared_ptr<b_node_t> root, int *ret_count);
     static bool verify(boost::shared_ptr<b_node_t>root,std::vector<module_t> & module_array);
@@ -253,7 +253,7 @@ struct module_t {
         unsigned int w = rotated?shape.h:shape.w;
         unsigned int h = rotated?shape.w:shape.h;
         unsigned int tmp[4][2]={{x,y}, {x, y+h}, {x+w, y+h}, {x+w, y}};
-        memcpy(rect, tmp, sizeof(sizeof(unsigned int)*8));
+        memcpy(rect, tmp, sizeof(unsigned int)*8);
     }
 
     ///< HPWL calculation for module-to-terminal and module-to-module

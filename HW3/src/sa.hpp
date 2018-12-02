@@ -74,21 +74,21 @@ struct solution_t {
     solution_t(){
         tree_root.reset();
         cost = std::numeric_limits<unsigned long int>::max();
-	wirelength = std::numeric_limits<unsigned int>::max();
+	    wirelength = std::numeric_limits<unsigned int>::max();
     }
 
     void build_from_b_tree(boost::shared_ptr<b_node_t> src_root, int num_of_nodes);
 
     void update_cost(std::vector<module_t> &module_array, std::vector<net_t> &net_array, 
     std::vector<terminal_t> &pin_array, int mode);    
-    bool verify(std::vector<module_t> &module_array);
+    bool verify(std::vector<module_t> &module_array, bool flag);
 
 
     inline solution_t & operator=(const solution_t &other){
         build_from_b_tree(other.tree_root, other.lookup_tbl.size());
         cost = other.cost;
         die_shape = other.die_shape;
-	wirelength = other.wirelength;
+	    wirelength = other.wirelength;
         return *this;
     }
 

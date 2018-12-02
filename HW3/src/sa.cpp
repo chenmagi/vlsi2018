@@ -4,7 +4,9 @@
 #include "algo.hpp"
 #include <iostream>
 #include "globalvar.hpp"
-
+#include "view.hpp"
+#include <string>
+#include <fstream>
 double random_t::deviation = 4.0;
 double random_t::mean = 1.0;
 double simulated_annealing_t::tc_start = 10000.0;
@@ -39,15 +41,26 @@ solution_t simulated_annealing_t::get_next_solution(std::vector<module_t> & modu
     
     switch(op){
         case random_t::FIRST_DEVIATION: ///< rotate
+            //std::cout<<"do swap "<<node1->module_id << " <->" << node2->module_id << std::endl;
             b_node_t::swap(node1, node2);
+            result.lookup_tbl[random_id0]=node2;   
+            result.lookup_tbl[random_id1]=node1;
         break;
         case random_t::SECOND_DEVIATION: ///< swap
+            //std::cout<<"do rotate "<<node1->module_id << std::endl;
             node1->rotate();
         break;
         
         case random_t::THIRD_DEVIATION: ///< move
-            node2->rotate();
-            b_node_t::swap(node2, node1);
+            if(node1->num_of_children()==1)
+                b_node_t::move(node1, node2);
+            else {
+                b_node_t::swap(node2, node1);
+                result.lookup_tbl[random_id0]=node2;   
+                result.lookup_tbl[random_id1]=node1;
+                node2->rotate();
+            }
+            
         break;
         
         
@@ -68,7 +81,7 @@ solution_t simulated_annealing_t::get_next_solution(std::vector<module_t> & modu
 
     return result;
 }
-
+#define REJECTION_LIMIT 400
 void simulated_annealing_t::run(std::vector<module_t> & module_array, std::vector<net_t> &net_array, std::vector<terminal_t> &pin_array,int timeout){
     double tc_current = this->tc_start;
     int node_count=0;
@@ -102,55 +115,82 @@ void simulated_annealing_t::run(std::vector<module_t> & module_array, std::vecto
     fit_sol.wirelength= std::numeric_limits<unsigned int>::max();
     
     do {
-      double c_fac=1.0-this->cooling_factor/pow(2,sa_loop);
-      tc_current = tc_start/pow(1.414, sa_loop);
-      int continuous_reject=0, global_reject=0, op_count=0;
-    while(tc_current > this->tc_end && simple_timer_t::get_ref().elapsed() < timeout){
-        double old_cost = cur_sol.cost;
-        solution_t new_solution = get_next_solution(module_array, cur_sol);
-        new_solution.update_cost(module_array, net_array, pin_array, iteration<40000?0:1);
-        op_count++;
-        if(new_solution.die_shape.w <= target_die_shape.w && new_solution.die_shape.h <= target_die_shape.h){
-            if(fit_sol.wirelength > new_solution.wirelength){
-              found=true;
-              fit_sol = new_solution;
-              if(global_var->timing_limit) break;
-            }
-        }
-        double prob = acceptance(new_solution.cost, old_cost, tc_current);
-        tc_current *= c_fac;
-        if(prob >= level){
-          cur_sol = new_solution;
-          if(new_solution.cost < best_sol.cost)
-            best_sol = new_solution;
-          continuous_reject=0;
-#if defined(MYDEBUG)
-        std::cout<<"["<<iteration++<<"]"<<cur_sol.toString() <<", eslaped="<<
-           simple_timer_t::get_ref().elapsed()<<", best=" << best_sol.die_shape.w<<" x " <<
-           best_sol.die_shape.h << ", tc="<<(double)tc_current<<std::endl;
-#endif
-        }
-        else {
-         iteration++;
-         continuous_reject++;
-         global_reject++;
-        }
-        if(continuous_reject>2000){
-           ///< perturbe again
-           cur_sol = best_sol;
-        }
+        double c_fac=1.0-this->cooling_factor/pow(2,sa_loop);
+        tc_current = tc_start/pow(1.414, sa_loop);
+        int continuous_reject=0, global_reject=0, op_count=0;
+        while(tc_current > this->tc_end && simple_timer_t::get_ref().elapsed() < timeout){
+            double old_cost = cur_sol.cost;
+            solution_t new_solution = get_next_solution(module_array, cur_sol);
+            //std::cout<<"update--"<<std::endl;
+            new_solution.update_cost(module_array, net_array, pin_array, 0);
+            //std::cout<<"new_solution="<<new_solution.die_shape.w<<"x"<<new_solution.die_shape.h<<std::endl;
+            op_count++;
+            if(new_solution.die_shape.w <= target_die_shape.w && new_solution.die_shape.h <= target_die_shape.h){
+                bool legal = new_solution.verify(module_array, true);
 
-    }
+#if defined(MYDEBUG)            
+                if(legal==false){
+                    int num_of_nodes=0;
+                    build_graphviz(cur_sol.tree_root, ostream, &num_of_nodes);
+                    num_of_nodes=0;
+                    build_graphviz(new_solution.tree_root, ostream, &num_of_nodes);
+                    std::cout<<ostream.str()<<std::endl;
+                    show_result("current", cur_sol, module_array, NULL);
+                    show_result("new", new_solution, module_array, NULL);
+
+                }
+#endif
+                BOOST_ASSERT(legal==true);
+                if(fit_sol.wirelength > new_solution.wirelength){
+                    found=true;
+                    fit_sol = new_solution;
+#if defined(MYDEBUG)                    
+                    legal = fit_sol.verify(module_array, true);
+                    if(legal==false){
+                        show_result("before copy", new_solution, module_array, NULL);
+                        show_result("after copy", fit_sol, module_array, NULL);
+                    }
+                    BOOST_ASSERT(legal==true);
+
+#endif                    
+                    if(global_var->timing_limit) break;
+                }
+            }
+            double prob = acceptance(new_solution.cost, old_cost, tc_current);
+            tc_current *= c_fac;
+            if(prob >= level){
+                cur_sol = new_solution;
+                if(new_solution.cost < best_sol.cost)
+                    best_sol = new_solution;
+                continuous_reject=0;
+#if defined(MYDEBUG)
+                std::cout<<"["<<iteration++<<"]"<<cur_sol.toString() <<", eslaped="<<
+                    simple_timer_t::get_ref().elapsed()<<", fit=" << fit_sol.die_shape.w<<" x " <<
+                    fit_sol.die_shape.h << ", tc="<<(double)tc_current<<std::endl;
+#endif
+            }
+            else {
+                iteration++;
+                continuous_reject++;
+                global_reject++;
+            }
+            if(continuous_reject> REJECTION_LIMIT && (double)rand()/(double)RAND_MAX >0.1){
+                ///< perturbe again
+                continuous_reject=0;
+                cur_sol = best_sol;
+            }
+
+        }
         sa_loop++;
         if(found==true && ((double)global_reject)/((double)op_count) > 0.7){
-           break;
+            break;
         }
         if(fit_sol.wirelength<=target_wirelength)
-           break;
+            break;
         if(global_var->timing_limit==true && found==true)
-           break;
+            break;
         cur_sol = best_sol;
-       
+
     }while(simple_timer_t::get_ref().elapsed()<timeout);
 
     return;
@@ -162,7 +202,7 @@ void simulated_annealing_t::run(std::vector<module_t> & module_array, std::vecto
 
 void solution_t::build_from_b_tree(boost::shared_ptr<b_node_t> src_root, int num_of_nodes){
     this->tree_root = boost::shared_ptr<b_node_t>(new b_node_t(src_root->module_id));
-    std::queue<b_node_t> bfs_queue;
+    std::queue<boost::shared_ptr<b_node_t> > bfs_queue;
     std::queue<boost::shared_ptr<b_node_t> > construct_queue;
 
     lookup_tbl.clear();
@@ -171,36 +211,38 @@ void solution_t::build_from_b_tree(boost::shared_ptr<b_node_t> src_root, int num
         lookup_tbl.push_back(ptr);
     }
     
-    bfs_queue.push(*src_root);    
+    bfs_queue.push(src_root);    
     
     construct_queue.push(tree_root);
 
     while(!bfs_queue.empty()){
-        b_node_t sub_root = bfs_queue.front();
+        boost::shared_ptr<b_node_t> sub_root = bfs_queue.front();
         bfs_queue.pop();
         boost::shared_ptr<b_node_t> ptr_current = construct_queue.front();
         construct_queue.pop();
-        lookup_tbl[sub_root.module_id]=ptr_current;
+        lookup_tbl[sub_root->module_id]=ptr_current;
         
-        boost::shared_ptr<b_node_t> lchild = sub_root.lchild;
-        boost::shared_ptr<b_node_t> rchild = sub_root.rchild;
+        boost::shared_ptr<b_node_t> lchild = sub_root->lchild;
+        boost::shared_ptr<b_node_t> rchild = sub_root->rchild;
         if(lchild!=NULL){
-            bfs_queue.push(*lchild);
-            ptr_current->lchild = boost::shared_ptr<b_node_t> (new b_node_t(0));
-            *ptr_current->lchild = *lchild;
+            bfs_queue.push(lchild);
+            ptr_current->lchild = boost::shared_ptr<b_node_t> (new b_node_t(lchild->module_id));
             ptr_current->lchild->parent = ptr_current;
+            ptr_current->lchild->rotated = lchild->rotated;
             construct_queue.push(ptr_current->lchild);
         }
         else ptr_current->lchild.reset();
         if(rchild!=NULL){
-            bfs_queue.push(*rchild);
-            ptr_current->rchild = boost::shared_ptr<b_node_t> (new b_node_t(0));
-            *ptr_current->rchild = *rchild;
+            bfs_queue.push(rchild);
+            ptr_current->rchild = boost::shared_ptr<b_node_t> (new b_node_t(rchild->module_id));
             ptr_current->rchild->parent = ptr_current;
+             ptr_current->rchild->rotated = rchild->rotated;
             construct_queue.push(ptr_current->rchild);
         }
         else ptr_current->rchild.reset();
     }    
+
+    BOOST_ASSERT(construct_queue.empty()==true);
 
     return;
 }
@@ -214,13 +256,17 @@ void solution_t::update_cost(std::vector<module_t> &module_array, std::vector<ne
     std::vector<int> y_array;
     cost =0;
     double length=0;
+    //std::cout<<"u100"<<std::endl;
     global_var_t *global_var = global_var_t::get_ref();
     shape_t target_die_shape = global_var->get_die_shape();
     double target_wirelength = global_var->get_target_wirelength();
+    //std::cout<<"u110"<<std::endl;
     //std::vector<unsigned int> h_contour, v_contour;
     die_shape=b_node_t::pack2(tree_root, module_array);//, h_contour, v_contour);
+    //std::cout<<"u120"<<std::endl;
     for(int k=0;k<net_array.size();++k){
         net_t net = net_array[k];
+        //std::cout<<"u121"<<std::endl;
         for(int i=0;i<net.module_ids.size();++i){
             unsigned int id = net.module_ids[i];
             unsigned int cx, cy;
@@ -231,6 +277,7 @@ void solution_t::update_cost(std::vector<module_t> &module_array, std::vector<ne
             x_array.push_back((int)cx);
             y_array.push_back((int)cy);
         }
+        //std::cout<<"u122"<<std::endl;
         if(net.pin_count==1){
             unsigned int px, py;
             px = pin_array[net.pin_id].coord.x;
@@ -238,16 +285,20 @@ void solution_t::update_cost(std::vector<module_t> &module_array, std::vector<ne
             x_array.push_back((int)px);
             y_array.push_back((int)py);
         }
+        //std::cout<<"u123"<<std::endl;
         sort(x_array.begin(), x_array.end(), integer_cmp);
+        //std::cout<<"u124"<<std::endl;
         sort(y_array.begin(), y_array.end(), integer_cmp);
-        
+        //std::cout<<"u125"<<std::endl;
         int dx=x_array[x_array.size()-1]-x_array[0];
         int dy=y_array[y_array.size()-1]-y_array[0];
-        
+        //std::cout<<"u126"<<std::endl;
         length += dx;
         length += dy;
         x_array.clear(); y_array.clear();
+        //std::cout<<"u127"<<std::endl;
     }    
+    //std::cout<<"u130"<<std::endl;
     wirelength = length;
     double balance=die_shape.w<die_shape.h? (double)die_shape.h/(double)die_shape.w:(double)die_shape.w/(double)die_shape.h;
     int dw = (die_shape.w <=target_die_shape.w )
@@ -264,6 +315,7 @@ void solution_t::update_cost(std::vector<module_t> &module_array, std::vector<ne
     cost = 100000.0*balance_0; ///< hinge loss for die size constraint
     cost += (double)length;
 #endif
+    //std::cout<<"u140"<<std::endl;
     return;
 
 }
@@ -277,30 +329,39 @@ static bool contains(unsigned int rect0[4][2], unsigned int rect1[4][2]){
     }
     return false;
 }
-bool solution_t::verify(std::vector<module_t> & module_array){
+bool solution_t::verify(std::vector<module_t> & module_array, bool flag){
     unsigned int rect0[4][2]={0};
     unsigned int rect1[4][2]={0};
     int overlap_count=0;
+    global_var_t *global_var = global_var_t::get_ref();
+    shape_t target_die_shape = global_var->get_die_shape();
     for(int i=0;i<this->lookup_tbl.size();++i){
       bool rotated_0 = lookup_tbl[i]->rotated;
       module_array[i].get_rect(rect0,rotated_0);
+      if(flag){
+        if(rect0[2][0]>target_die_shape.w || rect0[2][1]>target_die_shape.h){
+          std::cout<<"sb"<<i<<" exceeds die size constraint, rotated="<<rotated_0<<std::endl;
+          overlap_count++;
+        }
+      }      
       for(int k=0;k<module_array.size();++k){
          if(k==i) continue;
          bool rotated_1 = lookup_tbl[k]->rotated;
          module_array[k].get_rect(rect1,rotated_1);
          if(contains(rect0,rect1) || contains(rect1, rect0)){
+             overlap_count++;
 #if defined(MYDEBUG)
-           std::cout<<"sb"<<i<<" overlaps sb"<<k<<std::endl;
-           std::cout<<"sb"<<i<<" "<<module_array[i].origin.x <<" "<<module_array[i].origin.y;
-           std::cout<<" "<<module_array[i].shape.w <<" "<<module_array[i].shape.h;
-           std::cout<<" "<<this->lookup_tbl[i]->rotated<<std::endl;
-           std::cout<<"sb"<<k<<" "<<module_array[k].origin.x <<" "<<module_array[k].origin.y;
-           std::cout<<" "<<module_array[k].shape.w <<" "<<module_array[k].shape.h;
-           std::cout<<" "<<this->lookup_tbl[k]->rotated<<std::endl;
+            std::cout<<"sb"<<i<<" overlaps sb"<<k<<std::endl;
+            std::cout<<"sb"<<i<<" "<<module_array[i].origin.x <<" "<<module_array[i].origin.y;
+            std::cout<<" "<<module_array[i].shape.w <<" "<<module_array[i].shape.h;
+            std::cout<<" "<<this->lookup_tbl[i]->rotated<<std::endl;
+            std::cout<<"sb"<<k<<" "<<module_array[k].origin.x <<" "<<module_array[k].origin.y;
+            std::cout<<" "<<module_array[k].shape.w <<" "<<module_array[k].shape.h;
+            std::cout<<" "<<this->lookup_tbl[k]->rotated<<std::endl;
 #endif
-           return false;
-         }
+
+        }
       }
     }
-    return true;
+    return overlap_count==0?true:false;
 }

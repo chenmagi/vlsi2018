@@ -74,40 +74,29 @@ static void init_contour(std::vector<unsigned int>&contour, int max_width){
 
 static void update_horz_contour(std::vector<unsigned int> &contour, coordinate_t &origin, shape_t &shape){
     int x = origin.x;
+    int dh = origin.y;
+    BOOST_ASSERT(x+shape.w<contour.size());
+
     for(x = origin.x; x<origin.x+shape.w;++x){
-        contour[x]+=shape.h;
+        contour[x]=dh+shape.h>contour[x]?dh+shape.h:contour[x];
     }
     return;
 }
 
 static void update_vert_contour(std::vector<unsigned int> &contour, coordinate_t &origin, shape_t &shape){
     int y = origin.y;
+    int dw = origin.x;
+    BOOST_ASSERT(y+shape.h<contour.size());
     for(y = origin.y; y<origin.y+shape.h;++y){
-        contour[y]+=shape.w;
+        contour[y]=dw+shape.w>contour[y]?dw+shape.w:contour[y];
     }
     return;
 }
 
-static void place_left_child(std::vector<unsigned int> &horz_contour,std::vector<unsigned int> &vert_contour,
-module_t & parent, module_t &lchild){
-    int x = parent.origin.x + parent.shape.w;
-    int y = horz_contour[x];
-    lchild.origin.set(x,y);
-    update_horz_contour(horz_contour, lchild.origin, lchild.shape);
-    update_vert_contour(vert_contour, lchild.origin, lchild.shape);
-}
 
-static void place_right_child(std::vector<unsigned int> &horz_contour,std::vector<unsigned int> &vert_contour,
-module_t & parent, module_t &rchild){
-    int x = parent.origin.x;
-    int y = horz_contour[x];
-    rchild.origin.set(x,y);
-    update_horz_contour(horz_contour, rchild.origin, rchild.shape);
-    update_vert_contour(vert_contour, rchild.origin, rchild.shape);
-}
 static int max_contour(std::vector<unsigned int> &contour, int start, int end){
     int max=contour[start];
-    for(int i=start+1;i<end;++i){
+    for(int i=start+1;i<=end;++i){
         if(max<contour[i]) max=contour[i];
     }
     return max;
@@ -144,56 +133,18 @@ module_t & parent,bool parent_rotated, module_t &rchild, bool child_rotated){
     }
 }
 
-shape_t b_node_t::pack(boost::shared_ptr<b_node_t>root,std::vector<module_t> & module_array, std::vector<unsigned int> &horz_contour,std::vector<unsigned int>&vert_contour){
-    std::queue<b_node_t> bfs_queue;
-    global_var_t *global_var = global_var_t::get_ref();
-
-    init_contour(horz_contour, global_var->get_die_shape().w*2);
-    init_contour(vert_contour, global_var->get_die_shape().w*2);
-
-    bfs_queue.push(*root);
-    ///< place root node
-    module_array[root->module_id].origin.set(0,0);
-    ///< update contour
-    update_horz_contour(horz_contour,module_array[root->module_id].origin, module_array[root->module_id].shape);
-    update_vert_contour(vert_contour,module_array[root->module_id].origin, module_array[root->module_id].shape);
 
 
-    while(!bfs_queue.empty()){
-        b_node_t sub_root = bfs_queue.front();
-        unsigned int poped_id = sub_root.module_id;
-        bfs_queue.pop();
-        boost::shared_ptr<b_node_t> lchild = sub_root.lchild;
-        boost::shared_ptr<b_node_t> rchild = sub_root.rchild;
-        if(lchild!=NULL){
-            unsigned int child_id = lchild->module_id;
-            place_left_child(horz_contour, vert_contour, module_array[poped_id], module_array[child_id]);
-            bfs_queue.push(*lchild);
-
-        }
-        if(rchild!=NULL){
-            unsigned int child_id = rchild->module_id;
-            place_right_child(horz_contour, vert_contour, module_array[poped_id], module_array[child_id]);
-            bfs_queue.push(*rchild);
-        }
-    }
-    shape_t result;
-    result.h = *std::max_element(horz_contour.begin(), horz_contour.end());
-    result.w = *std::max_element(vert_contour.begin(), vert_contour.end());
-
-    return result;
-}
-
-shape_t b_node_t::pack2(boost::shared_ptr<b_node_t>root,std::vector<module_t> & module_array){
-    std::queue<b_node_t> bfs_queue;
+shape_t b_node_t::pack2(boost::shared_ptr<b_node_t> root,std::vector<module_t> & module_array){
+    std::queue<boost::shared_ptr<b_node_t> > bfs_queue;
     std::vector<unsigned int> horz_contour;
     std::vector<unsigned int> vert_contour;
     global_var_t *global_var = global_var_t::get_ref();
 
-    init_contour(horz_contour, global_var->get_die_shape().w*2);
-    init_contour(vert_contour, global_var->get_die_shape().w*2);
+    init_contour(horz_contour, global_var->get_die_shape().w*4);
+    init_contour(vert_contour, global_var->get_die_shape().w*4);
 
-    bfs_queue.push(*root);
+    bfs_queue.push(root);
     ///< place root node
     module_array[root->module_id].origin.set(0,0);
     ///< update contour
@@ -206,31 +157,42 @@ shape_t b_node_t::pack2(boost::shared_ptr<b_node_t>root,std::vector<module_t> & 
         update_horz_contour(horz_contour,module_array[root->module_id].origin, module_array[root->module_id].shape);
         update_vert_contour(vert_contour,module_array[root->module_id].origin, module_array[root->module_id].shape);
     }
+    //std::cout<<"sb"<<root->module_id<<"->";
 
 
     while(!bfs_queue.empty()){
-        b_node_t sub_root = bfs_queue.front();
-        unsigned int poped_id = sub_root.module_id;
+        boost::shared_ptr<b_node_t> sub_root = bfs_queue.front();
+        unsigned int poped_id = sub_root->module_id;
         bfs_queue.pop();
-        boost::shared_ptr<b_node_t> lchild = sub_root.lchild;
-        boost::shared_ptr<b_node_t> rchild = sub_root.rchild;
+        boost::shared_ptr<b_node_t> lchild = sub_root->lchild;
+        boost::shared_ptr<b_node_t> rchild = sub_root->rchild;
         if(lchild!=NULL){
             unsigned int child_id = lchild->module_id;
-            place_left_child2(horz_contour, vert_contour, module_array[poped_id],sub_root.rotated,
+            place_left_child2(horz_contour, vert_contour, module_array[poped_id],sub_root->rotated,
              module_array[child_id], lchild->rotated);
-            bfs_queue.push(*lchild);
-
+            bfs_queue.push(lchild);
+            /*
+            if(child_id==191){
+                std::cout<<module_array[171].toString()<<", rotate="<<lchild->parent->rotated<<std::endl;
+                std::cout<<module_array[child_id].toString()<<", rotate="<<lchild->rotated<<std::endl;
+                int w=*std::max_element(vert_contour.begin(), vert_contour.end());
+                int h=*std::max_element(horz_contour.begin(), horz_contour.end());
+                std::cout<<"die shape="<<w<<" x "<<h<<std::endl;
+            }
+            */
+            
         }
         if(rchild!=NULL){
             unsigned int child_id = rchild->module_id;
-            place_right_child2(horz_contour, vert_contour, module_array[poped_id],sub_root.rotated,
+            place_right_child2(horz_contour, vert_contour, module_array[poped_id],sub_root->rotated,
              module_array[child_id], rchild->rotated);
-            bfs_queue.push(*rchild);
+            bfs_queue.push(rchild);
         }
     }
     shape_t result;
     result.h = *std::max_element(horz_contour.begin(), horz_contour.end());
     result.w = *std::max_element(vert_contour.begin(), vert_contour.end());
+    //std::cout<<"die shape(final)="<<result.w<<" x "<<result.h<<std::endl;
 
     return result;
 }
@@ -247,14 +209,14 @@ static bool contains(unsigned int rect0[4][2], unsigned int rect1[4][2]){
     return false;
 }
 bool b_node_t::verify(boost::shared_ptr<b_node_t>root,std::vector<module_t> & module_array){
-    std::queue<b_node_t> bfs_queue;
+    std::queue<boost::shared_ptr<b_node_t> > bfs_queue;
     
-    bfs_queue.push(*root);
+    bfs_queue.push(root);
     int overlap_count=0;
     
     while(!bfs_queue.empty()){
-        b_node_t sub_root = bfs_queue.front();
-        unsigned int poped_id = sub_root.module_id;
+        boost::shared_ptr<b_node_t> sub_root = bfs_queue.front();
+        unsigned int poped_id = sub_root->module_id;
         bfs_queue.pop();
         unsigned int rect0[4][2] = {0};
         module_array[poped_id].get_rect(rect0);
@@ -273,19 +235,20 @@ bool b_node_t::verify(boost::shared_ptr<b_node_t>root,std::vector<module_t> & mo
             }
         }
 
-        boost::shared_ptr<b_node_t> lchild = sub_root.lchild;
-        boost::shared_ptr<b_node_t> rchild = sub_root.rchild;
+        boost::shared_ptr<b_node_t> lchild = sub_root->lchild;
+        boost::shared_ptr<b_node_t> rchild = sub_root->rchild;
         if(lchild!=NULL){
             unsigned int child_id = lchild->module_id;
-            bfs_queue.push(*lchild);
+            bfs_queue.push(lchild);
 
         }
         if(rchild!=NULL){
             unsigned int child_id = rchild->module_id;
-            bfs_queue.push(*rchild);
+            bfs_queue.push(rchild);
         }
     }    
-    return overlap_count==0?false:true;
+    std::cout<<"overlap_count="<<overlap_count<<std::endl;
+    return overlap_count==0?true:false;
 
 }
 

@@ -98,20 +98,26 @@ int build_graphviz(boost::shared_ptr<b_node_t> root, std::ostringstream &ostream
     if(root==NULL)
         return -1;
     *node_count+=1;    
+    char type='X';
+    if(root->is_as_root())
+        type='O';
+    else if(root->is_as_lchild())
+        type='L';
+    else type='R';
     if(root->parent==NULL){
         ostream << "digraph G{" <<std::endl;
     }
     if(root->num_of_children()==0){
-        ostream<<"sb"<<root->module_id << std::endl;
+        ostream<<"\"sb"<<root->module_id <<"("<<type<<")\""<< std::endl;
     }
 
     if(root->lchild){
-        ostream<<"sb"<<root->module_id << " -> ";
+        ostream<<"\"sb"<<root->module_id <<"("<<type<<")\""<< " -> ";
         build_graphviz(root->lchild, ostream, node_count);
     } 
     
     if(root->rchild){
-        ostream<<"sb"<<root->module_id << " -> ";
+        ostream<<"\"sb"<<root->module_id <<"("<<type<<")\""<< " -> ";
         build_graphviz(root->rchild, ostream, node_count);
     }
     

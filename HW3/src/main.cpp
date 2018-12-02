@@ -6,6 +6,7 @@
 #include "globalvar.hpp"
 #include "sa.hpp"
 #include "clock.hpp"
+#include "view.hpp"
 #include <fstream>
 
 namespace fs = boost::filesystem;
@@ -127,6 +128,8 @@ void do_seed_init(const char *dataset, const char *ratio_str){
   }
   
   global_var_t *global_var = global_var_t::get_ref();
+  if(getenv("hw3_time_limit")!=NULL)
+    global_var->timing_limit=true; 
   if(strcmp(dataset+(len-len2), "n100.hardblocks")==0){
     random_t::init(16700);
     global_var->set_target_wirelength(215143);
@@ -138,7 +141,7 @@ void do_seed_init(const char *dataset, const char *ratio_str){
     //random_t::init(434);
     random_t::init(21587);
     global_var->set_target_wirelength(400291);
-    if(ratio==0.1) global_var->timing_limit=true; 
+    //if(ratio==0.1) global_var->timing_limit=true; 
   }
   else if(strcmp(dataset+(len-len2), "n300.hardblocks")==0){
     random_t::init(19853);
@@ -190,7 +193,7 @@ int main(int argc, char **argv){
   std::cout<<"[die size fit]="<<sa.fit_sol.toString()<<std::endl;
   std::cout<<"[best cost solution]="<<sa.best_sol.toString()<<std::endl;
   std::cout<<"[last solution when run sa]="<<sa.cur_sol.toString()<<std::endl;
-  std::cout<<"verify result="<<sa.fit_sol.verify(module_array)<<std::endl;
+  std::cout<<"verify result="<<sa.fit_sol.verify(module_array, true)<<std::endl;
   
   std::ofstream file;
   file.open (argv[4]);
@@ -202,7 +205,13 @@ int main(int argc, char **argv){
     file <<" "<<sa.fit_sol.lookup_tbl[k]->rotated<<"\n";
   }
   file.close();
-
+#if defined(USE_UI)
+  int num_of_nodes=0;
+  std::ostringstream ostream;
+  build_graphviz(sa.fit_sol.tree_root, ostream, &num_of_nodes);                  
+  std::cout<<ostream.str()<<std::endl;
+  show_result("final", sa.fit_sol, module_array, "result.png");
+#endif
 
   return 0;
 
