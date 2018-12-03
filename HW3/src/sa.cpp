@@ -222,6 +222,7 @@ void solution_t::build_from_b_tree(boost::shared_ptr<b_node_t> src_root, int num
     bfs_queue.push(src_root);    
     
     construct_queue.push(tree_root);
+    tree_root->rotated = src_root->rotated;
 
     while(!bfs_queue.empty()){
         boost::shared_ptr<b_node_t> sub_root = bfs_queue.front();
