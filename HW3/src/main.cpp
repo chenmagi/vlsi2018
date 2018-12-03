@@ -36,7 +36,7 @@ void do_seed_init(const char *dataset, const char *ratio_str){
     //random_t::init(22816);
     //random_t::init(1045);
     //random_t::init(434);
-    random_t::init(21587);
+    random_t::init(11273); //11273
     global_var->set_target_wirelength(400291);
     //if(ratio==0.1) global_var->timing_limit=true; 
   }
