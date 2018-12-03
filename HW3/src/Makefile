@@ -11,8 +11,9 @@ SOURCES+=view.cpp
 #CPPFLAGS+=-std=c++11 #-DBOOST_DISABLE_ASSERTS
 #CPPFLAGS+=-DMYDEBUG
 #CPPFLAGS+=-DBOOST_DISABLE_ASSERTS
-#CPPFLAGS+=-DUSE_UI
-LDFLAGS=-lboost_filesystem  -lopencv_core -lopencv_imgproc -lopencv_highgui
+CPPFLAGS+=-DUSE_UI
+LDFLAGS=-lboost_filesystem  
+LDFLAGS+=-lopencv_core -lopencv_imgproc -lopencv_highgui
 
 
 include Rules.mk
