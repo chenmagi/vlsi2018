@@ -50,11 +50,9 @@ void show_result(const char *name,solution_t & solution,  char *saved_fname){
     cv::namedWindow(name);
     cv::imshow(name, image);
     cv::waitKey(0);
-    /*
     if(saved_fname!=NULL){
         cv::imwrite(saved_fname, image);
     }
-    */
     return;
 
 
